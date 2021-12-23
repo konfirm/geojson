@@ -3,9 +3,9 @@ import * as Export from '../../../../source/Domain/GeoJSON/Concept/Position';
 import { coordinates } from '../../../data/HolySee';
 import { exported } from '../../../helper/geometry';
 
-exported('Domain/GeoJSON/Concept/Position', Export, 'isPosition', 'isStrictPosition');
+exported('Domain/GeoJSON/Concept/Position', Export, 'isPosition', 'isStrictPosition', 'isEquivalentPosition');
 
-const { isPosition, isStrictPosition } = Export;
+const { isPosition, isStrictPosition, isEquivalentPosition } = Export;
 const altitude = coordinates.map(([lon, lat, alt = 1.23]) => [lon, lat, alt]);
 
 test('Domain/GeoJSON/Concept/Position - isPosition', (t) => {
@@ -42,6 +42,15 @@ test('Domain/GeoJSON/Concept/Position - isStrictPosition', (t) => {
 	t.notOk(isStrictPosition([0, -91, -7000000]), `[0, -91, -7000000] is not a strict Position`);
 	t.notOk(isStrictPosition([-181, 0, -7000000]), `[-181, 0, -7000000] is not a strict Position`);
 	t.notOk(isStrictPosition([-181, -91, -7000000]), `[-181, -91, -7000000] is not a strict Position`);
+
+	t.end();
+});
+
+test('Domain/GeoJSON/Concept/Position - isEquivalentPosition', (t) => {
+	t.ok(isEquivalentPosition([1.23456789, 2.3456789], [1.23456789, 2.3456789]), `[1.23456789,2.3456789] and [1.23456789,2.3456789] are equivalent`);
+	t.ok(isEquivalentPosition([1.23456789, 2.3456789, 3.456789], [1.23456789, 2.3456789, 3.456789]), `[1.23456789,2.3456789,3.456789] and [1.23456789,2.3456789,3.456789] are equivalent`);
+	t.notOk(isEquivalentPosition([1.23456789, 2.3456789, 3.456789], [1.23456789, 2.3456789]), `[1.23456789,2.3456789,3.456789] and [1.23456789,2.3456789] are not equivalent`);
+	t.notOk(isEquivalentPosition([1.23456789, 2.3456789], [1.23456789, 2.3456789, , 3.456789]), `[1.23456789,2.3456789] and [1.23456789,2.3456789,,3.456789] are not equivalent`);
 
 	t.end();
 });
