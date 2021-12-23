@@ -6,7 +6,7 @@ import { coordinates as Italy } from '../../../data/Italy';
 import { coordinates as SanMarino } from '../../../data/SanMarino';
 import { coordinates as HolySee } from '../../../data/HolySee';
 
-exported(test, 'Domain/GeoJSON/Concept/LinearRing', Export, 'isLinearRing', 'isStrictLinearRing');
+exported('Domain/GeoJSON/Concept/LinearRing', Export, 'isLinearRing', 'isStrictLinearRing');
 
 const { isLinearRing, isStrictLinearRing } = Export;
 

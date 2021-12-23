@@ -3,7 +3,7 @@ import * as Export from '../../../../source/Domain/GeoJSON/Concept/Position';
 import { coordinates } from '../../../data/HolySee';
 import { exported } from '../../../helper/geometry';
 
-exported(test, 'Domain/GeoJSON/Concept/Position', Export, 'isPosition', 'isStrictPosition');
+exported('Domain/GeoJSON/Concept/Position', Export, 'isPosition', 'isStrictPosition');
 
 const { isPosition, isStrictPosition } = Export;
 const altitude = coordinates.map(([lon, lat, alt = 1.23]) => [lon, lat, alt]);

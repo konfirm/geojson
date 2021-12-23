@@ -1,4 +1,3 @@
-import test from 'tape';
 import * as Export from '../../../source/Domain/GeoJSON/GeoJSON';
 import { runner } from '../../helper/geometry';
 
@@ -15,7 +14,6 @@ const types = [
 ]
 
 runner(
-	test,
 	'Domain/GeoJSON/GeoJSON',
 	Export,
 	['isGeoJSON', types],

@@ -3,7 +3,7 @@ import each from 'template-literal-each';
 import * as Export from '../../../../source/Domain/GeoJSON/Concept/Longitude';
 import { exported } from '../../../helper/geometry';
 
-exported(test, 'Domain/GeoJSON/Concept/Longitude', Export, 'isLongitude', 'isStrictLongitude');
+exported('Domain/GeoJSON/Concept/Longitude', Export, 'isLongitude', 'isStrictLongitude');
 
 const { isLongitude, isStrictLongitude } = Export;
 

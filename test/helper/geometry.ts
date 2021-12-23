@@ -1,3 +1,4 @@
+import test from 'tape';
 import * as Shapes from '../data/Shapes';
 import { geometry, coordinates } from './malform';
 
@@ -8,7 +9,7 @@ export function explain(value: any): string {
 	return JSON.stringify(value).replace(/^(.{24}).{3,}(.{24})$/, '$1 … $2');
 }
 
-export function exported(test, group, exports, ...expect: Array<string>) {
+export function exported(group, exports, ...expect: Array<string>) {
 	test(`${group} - exports`, (t) => {
 		t.deepEqual(Object.keys(exports), expect, `exports ${expect.join(', ')}`);
 		expect.forEach((key) => {
@@ -19,10 +20,10 @@ export function exported(test, group, exports, ...expect: Array<string>) {
 	});
 }
 
-export function runner(test, group, exports, ...run: Array<string | [string, Array<string>]>) {
+export function runner(group, exports, ...run: Array<string | [string, Array<string>]>) {
 	const config = run.map((fun) => (Array.isArray(fun) ? fun : [fun, []]) as [string, Array<string>]);
 
-	exported(test, group, exports, ...config.map(([fun]) => fun));
+	exported(group, exports, ...config.map(([fun]) => fun));
 
 	config
 		.forEach(([fun, types = []]) => {

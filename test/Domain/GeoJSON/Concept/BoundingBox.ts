@@ -3,7 +3,7 @@ import each from 'template-literal-each';
 import * as Export from '../../../../source/Domain/GeoJSON/Concept/BoundingBox';
 import { exported } from '../../../helper/geometry';
 
-exported(test, 'Domain/GeoJSON/Concept/BoundingBox', Export, 'isBoundingBox', 'isStrictBoundingBox');
+exported('Domain/GeoJSON/Concept/BoundingBox', Export, 'isBoundingBox', 'isStrictBoundingBox');
 
 const { isBoundingBox, isStrictBoundingBox } = Export;
 
