@@ -1,4 +1,4 @@
-import { MultiPoint, Polygon } from "../../source/main";
+import { Feature, LineString, MultiPoint, Polygon } from "../../source/main";
 
 export const coordinates: MultiPoint['coordinates'] = [
 	[12.455663681030273, 41.90628554165478],
@@ -49,9 +49,26 @@ export const coordinates: MultiPoint['coordinates'] = [
 	[12.453818321228027, 41.906812536971195],
 	[12.453839778900146, 41.90698820110995],
 	[12.455449104309082, 41.90737146664404],
-]
-	;
+];
+export const multipoint: MultiPoint = {
+	type: 'MultiPoint',
+	coordinates,
+};
+export const linestring: LineString = {
+	type: 'LineString',
+	coordinates,
+};
 export const polygon: Polygon = {
-	"type": "Polygon",
-	"coordinates": [coordinates.concat(coordinates[0])]
+	type: 'Polygon',
+	coordinates: [coordinates.concat([coordinates[0]])]
+};
+export const feature: Feature = {
+	type: 'Feature',
+	properties: {
+		name: 'Vatican Obelisk',
+	},
+	geometry: {
+		type: 'Point',
+		coordinates: [12.457240819931028, 41.90221715109714],
+	},
 };

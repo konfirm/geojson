@@ -69,12 +69,15 @@ export const coordinates: MultiPoint['coordinates'] = [
 ];
 export const polygon: Polygon = {
 	type: 'Polygon',
-	coordinates: [coordinates.concat(coordinates[0])],
+	coordinates: [coordinates.concat([coordinates[0]])],
 };
 export const feature: Feature = {
 	type: 'Feature',
 	properties: {
-		name: 'San Marino',
+		name: 'Palazzo Pubblico'
 	},
-	geometry: polygon,
+	geometry: {
+		type: 'Point',
+		coordinates: [12.44632724672556, 43.9367772279862]
+	}
 }

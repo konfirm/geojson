@@ -2871,3 +2871,13 @@ export const multipolygon: MultiPolygon = {
 	type: 'MultiPolygon',
 	coordinates,
 };
+export const feature: Feature = {
+	type: 'Feature',
+	properties: {
+		name: 'Piazza Pio XII',
+	},
+	geometry: {
+		type: 'Point',
+		coordinates: [12.45874285697937, 41.90224110705049],
+	},
+};
