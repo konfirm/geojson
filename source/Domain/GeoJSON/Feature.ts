@@ -8,14 +8,14 @@ export type Feature = GeoJSONObject<{
 	geometry: Geometries | GeometryCollection;
 	properties: { [key: string]: unknown } | null;
 }>
-export const isFeature = all(
+export const isFeature = all<Feature>(
 	isGeoJSONObject('Feature'),
 	isStructure({
 		geometry: any(isGeometries, isGeometryCollection),
 		properties: any(isNULL, isObject)
 	})
 );
-export const isStrictFeature = all(
+export const isStrictFeature = all<Feature>(
 	isGeoJSONObject('Feature'),
 	isStructure({
 		geometry: any(isStrictGeometries, isStrictGeometryCollection),

@@ -6,11 +6,11 @@ export type FeatureCollection = GeoJSONObject<{
 	type: 'FeatureCollection';
 	features: Array<Feature>;
 }>
-export const isFeatureCollection = all(
+export const isFeatureCollection = all<FeatureCollection>(
 	isGeoJSONObject('FeatureCollection'),
 	isKeyOfType('features', isArrayOfType(isFeature))
 );
-export const isStrictFeatureCollection = all(
+export const isStrictFeatureCollection = all<FeatureCollection>(
 	isGeoJSONObject('FeatureCollection'),
 	isKeyOfType('features', isArrayOfType(isStrictFeature))
 );
