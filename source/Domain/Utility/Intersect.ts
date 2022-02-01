@@ -1,14 +1,16 @@
-import { Point } from "../GeoJSON/Geometry/Point";
-import { LineString } from "../GeoJSON/Geometry/LineString";
-import { Polygon } from "../GeoJSON/Geometry/Polygon";
 import { GeometryCollection } from "../GeoJSON/GeometryCollection";
 import { Feature } from "../GeoJSON/Feature";
 import { FeatureCollection } from "../GeoJSON/FeatureCollection";
-import { GeoJSON } from "../GeoJSON/GeoJSON";
-import { Geometries } from "../GeoJSON/Geometries";
-import { MultiPoint } from "../GeoJSON/Geometry/MultiPoint";
-import { MultiLineString } from "../GeoJSON/Geometry/MultiLineString";
-import { MultiPolygon } from "../GeoJSON/Geometry/MultiPolygon";
+import { Point } from '../GeoJSON/Geometry/Point';
+import { LineString } from '../GeoJSON/Geometry/LineString';
+import { Polygon } from '../GeoJSON/Geometry/Polygon';
+import { GeoJSON } from '../GeoJSON/GeoJSON';
+import { Geometries } from '../GeoJSON/Geometries';
+import { MultiPoint } from '../GeoJSON/Geometry/MultiPoint';
+import { MultiLineString } from '../GeoJSON/Geometry/MultiLineString';
+import { MultiPolygon } from '../GeoJSON/Geometry/MultiPolygon';
+import { segments } from './Segments';
+import { getDistanceOfPointToLine } from "./Distance";
 
 type CoordinateTypeArg
 	= [Point['type'], MultiPoint['coordinates']]
@@ -20,19 +22,6 @@ function typeArgs(a: Geometries): CoordinateTypeArg {
 	const [, m, t] = a.type.match(pattern) || [];
 
 	return [t, m ? a.coordinates : [a.coordinates]] as CoordinateTypeArg;
-}
-
-function segments(line: Array<Point['coordinates']>): Array<[Point['coordinates'], Point['coordinates']]> {
-	return line.slice(1).map((point, index) => [line[index], point]);
-}
-
-function getDistanceOfPointToLine(...points: [Point['coordinates'], Point['coordinates'], Point['coordinates']]) {
-	const [[px, py], [ax, ay], [bx, by]] = points;
-	const L2 = (((bx - ax) * (bx - ax)) + ((by - ay) * (by - ay)));
-
-	return L2 === 0
-		? Infinity
-		: Math.abs((((ay - py) * (bx - ax)) - ((ax - px) * (by - ay))) / L2) * Math.sqrt(L2);
 }
 
 function isPointOnLine(point: Point['coordinates'], ...line: [Point['coordinates'], Point['coordinates']]): boolean {
@@ -63,7 +52,7 @@ function isPointInRing(p: Point['coordinates'], ring: Array<Point['coordinates']
 	return odd !== 0;
 }
 
-const coordinates = {
+const geometries = {
 	PointPoint(a: Point['coordinates'], b: Point['coordinates']): boolean {
 		return a.length >= 2 && b.length >= 2 && a.slice(0, 2).every((v, i) => v === b[i]);
 	},
@@ -98,16 +87,15 @@ const nested = {
 		return (evaluate: (a: Geometries | GeometryCollection) => boolean) => evaluate(a);
 	},
 };
-
-function coordinatesIntersects(a: Geometries, b: Geometries): boolean {
+function geometryIntersects(a: Geometries, b: Geometries): boolean {
 	const [ta, va] = typeArgs(a);
 	const [tb, vb] = typeArgs(b);
 
-	if (typeof coordinates[ta + tb] === 'function') {
-		return va.some((a) => vb.some((b) => coordinates[ta + tb](a, b)));
+	if (typeof geometries[ta + tb] === 'function') {
+		return va.some((a) => vb.some((b) => geometries[ta + tb](a, b)));
 	}
-	if (typeof coordinates[tb + ta] === 'function') {
-		return va.some((a) => vb.some((b) => coordinates[tb + ta](b, a)));
+	if (typeof geometries[tb + ta] === 'function') {
+		return va.some((a) => vb.some((b) => geometries[tb + ta](b, a)));
 	}
 
 	return false;
@@ -121,5 +109,5 @@ export function intersect(a: GeoJSON, b: GeoJSON): boolean {
 		return nested[b.type](b)((b) => intersect(a, b));
 	}
 
-	return coordinatesIntersects(a as Geometries, b as Geometries);
+	return geometryIntersects(a as Geometries, b as Geometries);
 }
