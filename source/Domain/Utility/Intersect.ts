@@ -31,9 +31,9 @@ const geometries = {
 	},
 };
 
-export function intersect(...shapes: [GeoJSON, GeoJSON]): boolean {
-	for (const [a, b] of new IterablePairIterator(...shapes.map((shape) => new SimpleGeometryIterator(shape)))) {
-		if ((a.type + b.type in geometries && geometries[a.type + b.type](a.coordinates, b.coordinates)) || (b.type + a.type in geometries && geometries[b.type + a.type](b.coordinates, a.coordinates))) {
+export function intersect(a: GeoJSON, b: GeoJSON): boolean {
+	for (const [itA, itB] of new IterablePairIterator(new SimpleGeometryIterator(a), new SimpleGeometryIterator(b))) {
+		if ((itA.type + itB.type in geometries && geometries[itA.type + itB.type](itA.coordinates, itB.coordinates)) || (itB.type + itA.type in geometries && geometries[itB.type + itA.type](itB.coordinates, itA.coordinates))) {
 			return true;
 		}
 	}
