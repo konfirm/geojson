@@ -15,11 +15,11 @@ const isBoundingBoxWithoutAltitude = all(
 	isTuple(isLongitude, isLatitude, isLongitude, isLatitude),
 	([, s, , n]) => s <= n
 )
-export const isBoundingBox = any(
+export const isBoundingBox = any<BoundingBox>(
 	isBoundingBoxWithAltitude,
 	isBoundingBoxWithoutAltitude
 );
-export const isStrictBoundingBox = any(
+export const isStrictBoundingBox = any<BoundingBox>(
 	all(
 		isTuple(isStrictLongitude, isStrictLatitude, isStrictAltitude, isStrictLongitude, isStrictLatitude, isStrictAltitude),
 		isBoundingBoxWithAltitude

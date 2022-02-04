@@ -7,4 +7,4 @@ export function isAltitude(value: any): value is Altitude {
 
 const EARTH_RADIUS = 6_378_137;
 const GPS_SATELLITE_ORBIT = 20_180_000;
-export const isStrictAltitude = isNumberBetween(-EARTH_RADIUS, GPS_SATELLITE_ORBIT);
+export const isStrictAltitude = isNumberBetween<Altitude>(-EARTH_RADIUS, GPS_SATELLITE_ORBIT);
