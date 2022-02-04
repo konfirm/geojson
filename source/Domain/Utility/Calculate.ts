@@ -1,9 +1,18 @@
 import { Point } from "../GeoJSON/Geometry/Point";
 
-export function getDistanceOfLineToLine(a: [Point['coordinates'], Point['coordinates']], b: [Point['coordinates'], Point['coordinates']]): number {
-    return isLinesCrossing(a, b)
-        ? 0
-        : Math.min(...a.map((a) => getDistanceOfPointToLine(a, b), ...b.map((b) => getDistanceOfPointToLine(b, a))));
+export function getDistanceOfPointToPoint(...points: [Point['coordinates'], Point['coordinates']]): number {
+    const [[ax, ay], [bx, by]] = points;
+
+    return Math.sqrt(Math.pow(bx - ax, 2) + Math.pow(by - ay, 2));
+}
+
+export function getDistanceOfPointToLine(point: Point['coordinates'], line: [Point['coordinates'], Point['coordinates']]): number {
+    const [[px, py], [ax, ay], [bx, by]] = [point, ...line];
+    const L2 = (((bx - ax) * (bx - ax)) + ((by - ay) * (by - ay)));
+
+    return L2 === 0
+        ? getDistanceOfPointToPoint([px, py], [ax, ay])
+        : Math.abs((((ay - py) * (bx - ax)) - ((ax - px) * (by - ay))) / L2) * Math.sqrt(L2);
 }
 
 export function isPointOnLine(point: Point['coordinates'], line: [Point['coordinates'], Point['coordinates']], threshold: number = 1e-14): boolean {
