@@ -21,7 +21,7 @@ combo.forEach(([ta, tb]) => {
 	const hits = tests.filter(({ intersect }) => intersect);
 	const miss = tests.filter(({ intersect }) => !intersect);
 
-	test(`determines intersection of ${ta} with ${tb}`, (t) => {
+	test(`Domain/Utility/Intersect - intersect ${ta} with ${tb}`, (t) => {
 		hits.forEach(({ a, b }) => {
 			t.ok(intersect(a, b), `${explain(a)} intersects with ${explain(b)}`)
 		});
@@ -33,13 +33,13 @@ combo.forEach(([ta, tb]) => {
 	});
 });
 
-test('L2', (t) => {
+test('Domain/Utility/Intersect - intersect Point with empty LineString', (t) => {
 	t.notOk(intersect({ type: 'Point', coordinates: [1, 1] }, { type: 'LineString', coordinates: [[0, 0], [0, 0]] }));
 
 	t.end();
 });
 
-test(`determines intersection of invalid GeoJSON types`, (t) => {
+test(`Domain/Utility/Intersect - intersect invalid GeoJSON types`, (t) => {
 	shapes
 		.filter(({ a, b }: any) => a.type === 'Impossible' || b.type === 'Impossible')
 		.forEach(({ a, b }: any) => {
