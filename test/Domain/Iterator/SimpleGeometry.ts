@@ -28,7 +28,7 @@ const featurecollection: FeatureCollection = {
 };
 
 test('Domain/Utility/SimpleGeometryIterator - implements Symbol.iterator', (t) => {
-    const iterator = new SimpleGeometryIterator();
+    const iterator = new SimpleGeometryIterator(point);
 
     t.ok(Symbol.iterator in iterator, 'SimpleGeometryIterator implements Symbol.iterator');
 
