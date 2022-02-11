@@ -2,7 +2,10 @@ import test from 'tape';
 import * as Export from '../source/main';
 
 test('main - exports', (t) => {
-	const expect = [
+	const functions = [
+		'intersect',
+		'distance',
+		'SimpleGeometryIterator',
 		'isGeoJSON',
 		'isStrictGeoJSON',
 		'isPointCoordinates',
@@ -37,9 +40,11 @@ test('main - exports', (t) => {
 		'isStrictFeatureCollection',
 	];
 
-	t.deepEqual(Object.keys(Export), expect, `exports ${expect.join(', ')}`);
-	expect.forEach((key) => {
+	t.deepEqual(Object.keys(Export), functions, `exports ${functions.join(', ')}`);
+
+	functions.forEach((key) => {
 		t.equal(typeof Export[key], 'function', `${key} is a function`);
 	});
+
 	t.end();
 });
