@@ -5,11 +5,11 @@ import { explain } from '../../helper/geometry';
 
 test('Domain/Utility/Calculate - exports', (t) => {
     const expected = [
-        'getDistanceOfPointToPoint',
         'getClosestPointOnLineByPoint',
-        'isLinesCrossing',
+        'getDistanceOfPointToPoint',
         'getDistanceOfPointToLine',
         'getDistanceOfLineToLine',
+        'isLinesCrossing',
         'isPointOnLine',
         'isPointInRing',
     ];
@@ -25,19 +25,82 @@ test('Domain/Utility/Calculate - getDistanceOfPointToPoint', (t) => {
     const { getDistanceOfPointToPoint } = Calculate;
 
     each`
-        a                                         | b                                         | distance
-        ------------------------------------------|-------------------------------------------|----------
-        ${[0, 0]}                                 | ${[1, 0]}                                 | 1
-        ${[0, 0]}                                 | ${[0, 1]}                                 | 1
-        ${[0, 0]}                                 | ${[1, 1]}                                 | 1.4142135623730951
-        ${[0, 0]}                                 | ${[2, 1]}                                 | 2.23606797749979
-        ${[0, 0]}                                 | ${[1, 2]}                                 | 2.23606797749979
-        ${[0, 0]}                                 | ${[2, 2]}                                 | 2.8284271247461903
-        ${[9, 9]}                                 | ${[1, 9]}                                 | 8
-        ${[5.911760330200195, 51.97496770044958]} | ${[5.900301933288574, 51.97938231105512]} | 0.012279399276135748
-    `(({ a, b, distance }: any) => {
-        t.equal(getDistanceOfPointToPoint(a, b), Number(distance), `${explain(a)} to ${explain(b)} is ${distance}`);
+        a                                         | b                                         | absolute             | haversine          | wgs84
+        ------------------------------------------|-------------------------------------------|----------------------|--------------------|-------
+        ${[0, 0]}                                 | ${[1, 0]}                                 | 1                    | 111319.49079327357 | 111319.49079327358
+        ${[0, 0]}                                 | ${[0, 1]}                                 | 1                    | 111319.49079327357 | 110572.98510774602
+        ${[0, 0]}                                 | ${[1, 1]}                                 | 1.4142135623730951   | 157425.537108412   | 156896.58824477842
+        ${[0, 0]}                                 | ${[2, 1]}                                 | 2.23606797749979     | 248907.83743668246 | 248569.91472117603
+        ${[0, 0]}                                 | ${[1, 2]}                                 | 2.23606797749979     | 248907.83743668246 | 247561.39986867533
+        ${[0, 0]}                                 | ${[2, 2]}                                 | 2.8284271247461903   | 314827.08993590315 | 313751.8796746002
+        ${[9, 9]}                                 | ${[1, 9]}                                 | 8                    | 879574.1867326713  | 879663.7626909065
+        ${[5.911760330200195, 51.97496770044958]} | ${[5.900301933288574, 51.97938231105512]} | 0.012279399276135748 | 926.7333985794701  | 927.9989494282199
+        ${[4.8422, 45.7597]}                      | ${[2.3508, 48.8567]}                      | 3.974730551873921    | 392656.09164351074 | 392415.2429878265
+    `(({ a, b, ...calc }: any) => {
+        Object.keys(calc).forEach((key) => {
+            const value = Number(calc[key]);
+            t.equal(getDistanceOfPointToPoint(a, b, key as any), value, `${key} distance from ${explain(a)} to ${explain(b)} is ${value}`);
+        });
     });
+
+    t.equal(getDistanceOfPointToPoint([0, 0], [0, 0], () => Math.PI), Math.PI, 'Allows for custom function');
+    t.throws(() => getDistanceOfPointToPoint([0, 0], [1, 1], 'unknown'), /Not a PointToPoint calculation function unknown/);
+
+    t.end();
+});
+
+test('Domain/Utility/Calculate - getDistanceOfPointToLine', (t) => {
+    const { getDistanceOfPointToLine } = Calculate;
+    const line = [[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]];
+
+    each`
+        point                                      | line                | absolute             | haversine          | wgs84         
+        -------------------------------------------|---------------------|----------------------|--------------------|--------           
+        ${[1, 1]}                                  | ${[[0, 0], [3, 3]]} | 0                    | 0                  | 0
+        ${[2, 1]}                                  | ${[[0, 0], [3, 3]]} | 0.7071067811865476   | 78705.27630557417  | 78442.09378740854
+        ${[1, 2]}                                  | ${[[0, 0], [3, 3]]} | 0.7071067811865476   | 78696.28705105482  | 78433.31373086644
+        ${[5, 2]}                                  | ${[[0, 0], [9, 0]]} | 2                    | 222638.98158654713 | 221138.22586820205
+        ${[5, 2]}                                  | ${[[0, 0], [0, 9]]} | 5                    | 556258.174692382   | 556260.6576005204
+        ${[1, 1]}                                  | ${[[0, 0], [9, 0]]} | 1                    | 111319.49079327357 | 110572.98510774602
+        ${[3, 1]}                                  | ${[[0, 0], [9, 0]]} | 1                    | 111319.49079327357 | 110572.98510774602
+        ${[5, 1]}                                  | ${[[0, 0], [9, 0]]} | 1                    | 111319.49079327357 | 110572.98510774602
+        ${[7, 1]}                                  | ${[[0, 0], [9, 0]]} | 1                    | 111319.49079327357 | 110572.98510774602
+        ${[5.909668207168579, 51.979065108032444]} | ${line}             | 0.003071307726180726 | 327.89804582530377 | 327.78795649673697
+    `(({ point, line, ...calc }: any) => {
+        Object.keys(calc).forEach((key) => {
+            const value = Number(calc[key]);
+            t.equal(getDistanceOfPointToLine(point, line, key as any), value, `${key} distance from ${explain(point)} to ${explain(line)} is ${value}`);
+        });
+    });
+
+    t.equal(getDistanceOfPointToLine([0, 0], [[0, 0], [1, 1]], () => Math.PI), Math.PI, 'Allows for custom function');
+    t.throws(() => getDistanceOfPointToLine([0, 0], [[0, 0], [1, 1]], 'unknown'), /Not a PointToPoint calculation function unknown/);
+
+    t.end();
+});
+
+test('Domain/Utility/Calculate - getDistanceOfLineToLine', (t) => {
+    const { getDistanceOfLineToLine } = Calculate;
+
+    each`
+        a                    | b                    | absolute           | haversine          | wgs84
+        ---------------------|----------------------|--------------------|--------------------|--------
+        ${[[1, 1], [2, 2]]}  | ${[[0, 0], [3, 3]]}  | 0                  | 0                  | 0
+        ${[[1, 1], [20, 2]]} | ${[[0, 0], [30, 2]]} | 0.6651901052377394 | 74048.48313278591  | 73555.19251094996
+        ${[[2, 2], [4, 2]]}  | ${[[1, 1], [5, 1]]}  | 1                  | 111319.49079327357 | 110573.66135570193
+        ${[[2, 2], [4, 2]]}  | ${[[1, 1], [1, 5]]}  | 1                  | 111251.67624734061 | 111252.13152010409
+        ${[[2, 2], [4, 2]]}  | ${[[1, 1], [5, 5]]}  | 0                  | 0                  | 0
+        ${[[0, 0], [2, 0]]}  | ${[[1, 1], [1, 3]]}  | 1                  | 111319.49079327357 | 110572.98510774602
+        ${[[0, 0], [0, 5]]}  | ${[[3, 3], [9, 3]]}  | 3                  | 333500.68952370394 | 333503.8515201999
+    `(({ a, b, ...calc }: any) => {
+        Object.keys(calc).forEach((key) => {
+            const value = Number(calc[key]);
+            t.equal(getDistanceOfLineToLine(a, b, key as any), value, `${key} distance from ${explain(a)} to ${explain(b)} is ${value}`);
+        });
+    });
+
+    t.equal(getDistanceOfLineToLine([[0, 0], [1, 1]], [[0, 0], [1, 1]], () => Math.PI), Math.PI, 'Allows for custom function');
+    t.throws(() => getDistanceOfLineToLine([[0, 0], [0, 1]], [[1, 0], [1, 1]], 'unknown'), /Not a PointToPoint calculation function unknown/);
 
     t.end();
 });
@@ -75,45 +138,6 @@ test('Domain/Utility/Calculate - isLinesCrossing', (t) => {
         const crossed = crosses === 'yes';
         const message = crossed ? 'crosses' : 'does not cross';
         t.equal(isLinesCrossing(a, b), crossed, `${explain(a)} ${message} ${explain(b)}`);
-    });
-
-    t.end();
-});
-
-test('Domain/Utility/Calculate - getDistanceOfPointToLine', (t) => {
-    const { getDistanceOfPointToLine } = Calculate;
-
-    each`
-        point                                      | line                                                                                | distance
-        -------------------------------------------|-------------------------------------------------------------------------------------|----------
-        ${[1, 1]}                                  | ${[[0, 0], [3, 3]]}                                                                 | 0
-        ${[2, 1]}                                  | ${[[0, 0], [3, 3]]}                                                                 | 0.7071067811865476
-        ${[1, 2]}                                  | ${[[0, 0], [3, 3]]}                                                                 | 0.7071067811865476
-        ${[5, 2]}                                  | ${[[0, 0], [9, 0]]}                                                                 | 2
-        ${[5, 2]}                                  | ${[[0, 0], [0, 9]]}                                                                 | 5
-        ${[5.909668207168579, 51.979065108032444]} | ${[[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]]} | 0.003071307726180726
-    `(({ point, line, distance }: any) => {
-        t.deepEqual(getDistanceOfPointToLine(point, line), Number(distance), `from ${explain(point)} to ${explain(line)} is ${distance}`);
-    });
-
-    t.end();
-});
-
-test('Domain/Utility/Calculate - getDistanceOfLineToLine', (t) => {
-    const { getDistanceOfLineToLine } = Calculate;
-
-    each`
-        a                    | b                    | distance
-        ---------------------|----------------------|----------
-        ${[[1, 1], [2, 2]]}  | ${[[0, 0], [3, 3]]}  | 0
-        ${[[1, 1], [20, 2]]} | ${[[0, 0], [30, 2]]} | 0.6651901052377394
-        ${[[2, 2], [4, 2]]}  | ${[[1, 1], [5, 1]]}  | 1
-        ${[[2, 2], [4, 2]]}  | ${[[1, 1], [1, 5]]}  | 1
-        ${[[2, 2], [4, 2]]}  | ${[[1, 1], [5, 5]]}  | 0
-        ${[[0, 0], [2, 0]]}  | ${[[1, 1], [1, 3]]}  | 1
-        ${[[0, 0], [0, 5]]}  | ${[[3, 3], [9, 3]]}  | 3
-    `(({ a, b, distance }: any) => {
-        t.deepEqual(getDistanceOfLineToLine(a, b), Number(distance), `from ${explain(a)} to ${explain(b)} is ${distance}`);
     });
 
     t.end();
@@ -165,4 +189,3 @@ test('Domain/Utility/Calculate - isPointInRing', (t) => {
 
     t.end();
 });
-
