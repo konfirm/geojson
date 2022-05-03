@@ -19,18 +19,15 @@ const EARTH_RADIUS_MINOR_SQUARED = squared(EARTH_RADIUS_MINOR);
 const EARTH_RADIUS_FACTOR = EARTH_RADIUS_MINOR_SQUARED / EARTH_RADIUS_MAJOR_SQUARED;
 
 const PointToPoint: { [key: string]: (...positions: [Point['coordinates'], Point['coordinates']]) => number } = {
-    absolute(...positions) {
-        const [[ax, ay], [bx, by]] = positions;
-
-        return Math.sqrt(Math.pow(bx - ax, 2) + Math.pow(by - ay, 2));
+    absolute([ax, ay], [bx, by]) {
+        return Math.sqrt(squared(bx - ax) + squared(by - ay));
     },
-    haversine(...positions) {
+    haversine([ax, ay], [bx, by]) {
         //http://www.movable-type.co.uk/scripts/latlong.html
-        const [[ax, ay], [bx, by]] = positions;
         const [φa, φb, Δφ, Δλ] = [ay, by, by - ay, bx - ax].map((n) => n * Math.PI / 180);
         const a = squared(Math.sin(Δφ / 2)) + Math.cos(φa) * Math.cos(φb) * squared(Math.sin(Δλ / 2));
 
-        return EARTH_RADIUS_MAJOR * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        return EARTH_RADIUS_MAJOR * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 2;
     },
     wgs84(...positions) {
         const [a, b] = positions;
