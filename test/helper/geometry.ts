@@ -6,7 +6,7 @@ const shapes = Object.keys(Shapes).map((key) => Shapes[key]);
 const geometries = shapes.filter(({ coordinates }) => coordinates);
 
 export function explain(value: any): string {
-	return JSON.stringify(value).replace(/^(.{24}).{3,}(.{24})$/, '$1 … $2');
+	return JSON.stringify(value).replace(/^(.{20}).{3,}(.{20})$/, '$1 … $2');
 }
 
 export function exported(group, exports, ...expect: Array<string>) {

@@ -45,7 +45,7 @@ const geometries = {
     },
 };
 
-export function distance(a: GeoJSON, b: GeoJSON, calculation: PointToPointCalculation = 'absolute'): number {
+export function distance(a: GeoJSON, b: GeoJSON, calculation: PointToPointCalculation = 'direct'): number {
     return Math.min(...[...new IterablePairIterator(new SimpleGeometryIterator(a), new SimpleGeometryIterator(b))].map(([a, b]) => {
         return a.type + b.type in geometries
             ? geometries[a.type + b.type](a.coordinates, b.coordinates, calculation)
