@@ -5,9 +5,8 @@ test('main - exports', (t) => {
 	const functions = [
 		'intersect',
 		'distance',
-		'SimpleGeometryIterator',
-		'isGeoJSON',
-		'isStrictGeoJSON',
+		'isPosition',
+		'isStrictPosition',
 		'isPoint',
 		'isStrictPoint',
 		'isMultiPoint',
@@ -26,6 +25,8 @@ test('main - exports', (t) => {
 		'isStrictFeature',
 		'isFeatureCollection',
 		'isStrictFeatureCollection',
+		'isGeoJSON',
+		'isStrictGeoJSON',
 	];
 
 	t.deepEqual(Object.keys(Export), functions, `exports ${functions.join(', ')}`);
