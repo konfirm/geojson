@@ -9,21 +9,21 @@ const { isAltitude, isStrictAltitude } = Export;
 
 test('Domain/GeoJSON/Concept/Altitude - isAltitude', (t) => {
 	each`
-		input           | valid
-		----------------|-------
-		${0}            | yes
-		${0.0000000001} | yes
-		${1_234_567}    | yes
-		${-6_378_137}   | yes
-		${-6_378_137.1} | yes
-		${20_180_000}   | yes
-		${20_180_000.1} | yes
-		${-Infinity}    | no
-		${Infinity}     | no
-		${NaN}          | no
-		${'1234'}       | no
-		${false}        | no
-		${true}         | no
+		input              | valid
+		-------------------|-------
+		${0}               | yes
+		${0.0000000001}    | yes
+		${1_234_567}       | yes
+		${-6_371_008.7714} | yes
+		${-6_378_137}      | yes
+		${20_180_000}      | yes
+		${20_180_000.1}    | yes
+		${-Infinity}       | no
+		${Infinity}        | no
+		${NaN}             | no
+		${'1234'}          | no
+		${false}           | no
+		${true}            | no
 	`(({ input, valid }) => {
 		t.equal(isAltitude(input), valid === 'yes', `${input} ${valid}`);
 	});
@@ -33,21 +33,23 @@ test('Domain/GeoJSON/Concept/Altitude - isAltitude', (t) => {
 
 test('Domain/GeoJSON/Concept/Altitude - isStrictAltitude', (t) => {
 	each`
-		input           | valid
-		----------------|-------
-		${0}            | yes
-		${0.0000000001} | yes
-		${1_234_567}    | yes
-		${-6_378_137}   | yes
-		${-6_378_137.1} | no
-		${20_180_000}   | yes
-		${20_180_000.1} | no
-		${-Infinity}    | no
-		${Infinity}     | no
-		${NaN}          | no
-		${'1234'}       | no
-		${false}        | no
-		${true}         | no
+		input              | valid
+		-------------------|-------
+		${0}               | yes
+		${0.0000000001}    | yes
+		${1_234_567}       | yes
+		${-6_371_008.7714} | yes
+		${-6_371_008.7715} | no
+		${-6_378_137}      | no
+		${-6_378_137.1}    | no
+		${20_180_000}      | yes
+		${20_180_000.1}    | no
+		${-Infinity}       | no
+		${Infinity}        | no
+		${NaN}             | no
+		${'1234'}          | no
+		${false}           | no
+		${true}            | no
 	`(({ input, valid }) => {
 		t.equal(isStrictAltitude(input), valid === 'yes', `${input} ${valid}`);
 	});
