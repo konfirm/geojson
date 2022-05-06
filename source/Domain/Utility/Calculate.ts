@@ -1,6 +1,9 @@
 import { Point } from "../GeoJSON/Geometry/Point";
+import { EARTH_RADIUS, EARTH_RADIUS_MAJOR, EARTH_RADIUS_MINOR, EARTH_FLATTENING } from '../Constants';
 
 const D2R = Math.PI / 180;
+const π = Math.PI;
+const ε = Number.EPSILON;
 
 function constrain(value: number, min: number, max: number): number {
     return Math.max(Math.min(value, max), min);
@@ -14,17 +17,9 @@ function rad(n: number): number {
     return n * D2R;
 }
 
-function sincos(n: number): [number, number] {
-    return [Math.sin(n), Math.cos(n)];
-}
-
-const EARTH_RADIUS = 6371008.7714;         // mean radius
-const EARTH_RADIUS_MAJOR = 6378137;        // equatorial radius
-const EARTH_RADIUS_MINOR = 6356752.314245; // semiminor axis
 const EARTH_RADIUS_MAJOR_SQUARED = squared(EARTH_RADIUS_MAJOR);
 const EARTH_RADIUS_MINOR_SQUARED = squared(EARTH_RADIUS_MINOR);
 const EARTH_RADIUS_FACTOR = (EARTH_RADIUS_MAJOR_SQUARED - EARTH_RADIUS_MINOR_SQUARED) / EARTH_RADIUS_MINOR_SQUARED;
-const EARTH_FLATTENING = 298.257223563;
 const EARTH_INVERSE_FLATTENING = 1 / EARTH_FLATTENING;
 
 
@@ -38,44 +33,48 @@ const PointToPoint: { [key: string]: (...positions: [Point['coordinates'], Point
 
         return EARTH_RADIUS * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
     },
-    vincenty([λa, φa], [λb, φb]) {
+    vincenty(...points) {
         //https://www.movable-type.co.uk/scripts/latlong-vincenty.html
-        const L = rad(λb - λa);
-        const [sinU1, cosU1] = sincos(Math.atan((1 - EARTH_INVERSE_FLATTENING) * Math.tan(rad(φa))));
-        const [sinU2, cosU2] = sincos(Math.atan((1 - EARTH_INVERSE_FLATTENING) * Math.tan(rad(φb))));
+        const [[λ1, φ1], [λ2, φ2]] = points.map((p) => p.map(rad));
+        const L = λ2 - λ1; // L = difference in longitude, U = reduced latitude, defined by tan U = (1-f)·tanφ.
+        const tanU1 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ1), cosU1 = 1 / Math.sqrt((1 + tanU1 * tanU1)), sinU1 = tanU1 * cosU1;
+        const tanU2 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ2), cosU2 = 1 / Math.sqrt((1 + tanU2 * tanU2)), sinU2 = tanU2 * cosU2;
 
-        let λ = L;
-        let limit = 100;
-        let λP, Σ, sinΣ, cosΣ, cosSqAlpha, cos2ΣM;
+        const antipodal = Math.abs(L) > π / 2 || Math.abs(φ2 - φ1) > π / 2;
 
+        let λ = L, sinλ = null, cosλ = null; // λ = difference in longitude on an auxiliary sphere
+        let σ = antipodal ? π : 0, sinσ = 0, cosσ = antipodal ? -1 : 1, sinSqσ = null; // σ = angular distance P₁ P₂ on the sphere
+        let cos2σₘ = 1;                      // σₘ = angular distance on the sphere from the equator to the midpoint of the line
+        let cosSqα = 1;                      // α = azimuth of the geodesic at the equator
+
+        let λʹ = null, iterations = 0;
         do {
-            const sinλ = Math.sin(λ);
-            const cosλ = Math.cos(λ);
-            sinΣ = Math.sqrt((cosU2 * sinλ) * (cosU2 * sinλ) + (cosU1 * sinU2 - sinU1 * cosU2 * cosλ) * (cosU1 * sinU2 - sinU1 * cosU2 * cosλ));
+            sinλ = Math.sin(λ);
+            cosλ = Math.cos(λ);
+            sinSqσ = (cosU2 * sinλ) ** 2 + (cosU1 * sinU2 - sinU1 * cosU2 * cosλ) ** 2;
+            if (Math.abs(sinSqσ) < 1e-24) break;  // co-incident/antipodal points (σ < ≈0.006mm)
+            sinσ = Math.sqrt(sinSqσ);
+            cosσ = sinU1 * sinU2 + cosU1 * cosU2 * cosλ;
+            σ = Math.atan2(sinσ, cosσ);
+            const sinα = cosU1 * cosU2 * sinλ / sinσ;
+            cosSqα = 1 - sinα * sinα;
+            cos2σₘ = (cosSqα != 0) ? (cosσ - 2 * sinU1 * sinU2 / cosSqα) : 0; // on equatorial line cos²α = 0 (§6)
+            const C = EARTH_INVERSE_FLATTENING / 16 * cosSqα * (4 + EARTH_INVERSE_FLATTENING * (4 - 3 * cosSqα));
+            λʹ = λ;
+            λ = L + (1 - C) * EARTH_INVERSE_FLATTENING * sinα * (σ + C * sinσ * (cos2σₘ + C * cosσ * (-1 + 2 * cos2σₘ * cos2σₘ)));
+            // TODO: add tests
+            // const iterationCheck = antipodal ? Math.abs(λ) - π : Math.abs(λ);
+            // if (iterationCheck > π) throw new EvalError('λ > π');
+        } while (Math.abs(λ - λʹ) > 1e-12 && ++iterations < 1000); // TV: 'iterate until negligible change in λ' (≈0.006mm)
+        // TODO: add tests
+        // if (iterations >= 1000) throw new EvalError('Vincenty formula failed to converge');
 
-            if (sinΣ == 0) return 0; // co-incident points
-
-            cosΣ = sinU1 * sinU2 + cosU1 * cosU2 * cosλ;
-            Σ = Math.atan2(sinΣ, cosΣ);
-            const sinAlpha = cosU1 * cosU2 * sinλ / sinΣ;
-            cosSqAlpha = 1 - squared(sinAlpha);
-            cos2ΣM = cosΣ - 2 * sinU1 * sinU2 / cosSqAlpha;
-
-            if (isNaN(cos2ΣM)) cos2ΣM = 0; // equatorial line: cosSqAlpha=0 (§6)
-
-            const C = EARTH_INVERSE_FLATTENING / 16 * cosSqAlpha * (4 + EARTH_INVERSE_FLATTENING * (4 - 3 * cosSqAlpha));
-
-            λP = λ;
-            λ = L + (1 - C) * EARTH_INVERSE_FLATTENING * sinAlpha * (Σ + C * sinΣ * (cos2ΣM + C * cosΣ * (-1 + 2 * cos2ΣM * cos2ΣM)));
-        } while (Math.abs(λ - λP) > 1e-12 && --limit > 0);
-
-        const uSq = cosSqAlpha * EARTH_RADIUS_FACTOR;
+        const uSq = cosSqα * EARTH_RADIUS_FACTOR;
         const A = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
         const B = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
-        const ΔΣ = B * sinΣ * (cos2ΣM + B / 4 * (cosΣ * (-1 + 2 * cos2ΣM * cos2ΣM) - B / 6 * cos2ΣM * (-3 + 4 * sinΣ * sinΣ) * (-3 + 4 * cos2ΣM * cos2ΣM)));
-        const s = EARTH_RADIUS_MINOR * A * (Σ - ΔΣ);
+        const Δσ = B * sinσ * (cos2σₘ + B / 4 * (cosσ * (-1 + 2 * cos2σₘ * cos2σₘ) - B / 6 * cos2σₘ * (-3 + 4 * sinσ * sinσ) * (-3 + 4 * cos2σₘ * cos2σₘ)));
 
-        return s;
+        return EARTH_RADIUS_MINOR * A * (σ - Δσ);
     },
 };
 
