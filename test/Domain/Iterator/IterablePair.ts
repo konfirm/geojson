@@ -1,5 +1,5 @@
 import test from 'tape';
-import { IterablePairIterator } from '../../../source/Domain/Iterator/IterablePair';
+import * as Export from '../../../source/Domain/Iterator/IterablePair';
 import { SimpleGeometryIterator } from '../../../source/Domain/Iterator/SimpleGeometry';
 import { Point } from '../../../source/Domain/GeoJSON/Geometry/Point';
 import { MultiPoint } from '../../../source/Domain/GeoJSON/Geometry/MultiPoint';
@@ -10,7 +10,7 @@ import { MultiPolygon } from '../../../source/Domain/GeoJSON/Geometry/MultiPolyg
 import { GeometryCollection } from '../../../source/Domain/GeoJSON/GeometryCollection';
 import { Feature } from '../../../source/Domain/GeoJSON/Feature';
 import { FeatureCollection } from '../../../source/Domain/GeoJSON/FeatureCollection';
-import { explain } from '../../helper/geometry';
+import { explain, exported } from '../../helper/geometry';
 
 const point: Point = { type: 'Point', coordinates: [0, 0] };
 const multipoint: MultiPoint = { type: 'MultiPoint', coordinates: [[1, 1], [2, 2]] };
@@ -28,7 +28,11 @@ const featurecollection: FeatureCollection = {
     ]
 };
 
-test('Domain/Utility/SimpleGeometryIterator - implements Symbol.iterator', (t) => {
+exported('Domain/Iterator/IterablePair', Export, 'IterablePairIterator');
+
+const { IterablePairIterator } = Export;
+
+test('Domain/Iterator/IterablePair - implements Symbol.iterator', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(point), new SimpleGeometryIterator(multipoint));
 
     t.ok(Symbol.iterator in iterator, 'SimpleGeometryIterator implements Symbol.iterator');
@@ -36,7 +40,7 @@ test('Domain/Utility/SimpleGeometryIterator - implements Symbol.iterator', (t) =
     t.end();
 });
 
-test('Domain/Utility/SimpleGeometryIterator - Point with MultiPoint', (t) => {
+test('Domain/Iterator/IterablePair - Point with MultiPoint', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(point), new SimpleGeometryIterator(multipoint));
     const expanded = [...iterator];
     const expected = [
@@ -56,7 +60,7 @@ test('Domain/Utility/SimpleGeometryIterator - Point with MultiPoint', (t) => {
     t.end();
 });
 
-test('Domain/Utility/SimpleGeometryIterator - MultiPoint with LineString', (t) => {
+test('Domain/Iterator/IterablePair - MultiPoint with LineString', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(multipoint), new SimpleGeometryIterator(linestring));
     const expanded = [...iterator];
     const expected = [
@@ -76,7 +80,7 @@ test('Domain/Utility/SimpleGeometryIterator - MultiPoint with LineString', (t) =
     t.end();
 });
 
-test('Domain/Utility/SimpleGeometryIterator - MultiPoint with MultiLineString', (t) => {
+test('Domain/Iterator/IterablePair - MultiPoint with MultiLineString', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(multipoint), new SimpleGeometryIterator(multilinestring));
     const expanded = [...iterator];
     const expected = [
@@ -100,7 +104,7 @@ test('Domain/Utility/SimpleGeometryIterator - MultiPoint with MultiLineString', 
     t.end();
 });
 
-test('Domain/Utility/SimpleGeometryIterator - MultiLineString with Polygon', (t) => {
+test('Domain/Iterator/IterablePair - MultiLineString with Polygon', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(multilinestring), new SimpleGeometryIterator(polygon));
     const expanded = [...iterator];
     const expected = [
@@ -121,7 +125,7 @@ test('Domain/Utility/SimpleGeometryIterator - MultiLineString with Polygon', (t)
     t.end();
 });
 
-test('Domain/Utility/SimpleGeometryIterator - Polygon with MultiPolygon', (t) => {
+test('Domain/Iterator/IterablePair - Polygon with MultiPolygon', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(polygon), new SimpleGeometryIterator(multipolygon));
     const expanded = [...iterator];
     const expected = [
@@ -141,7 +145,7 @@ test('Domain/Utility/SimpleGeometryIterator - Polygon with MultiPolygon', (t) =>
     t.end();
 });
 
-test('Domain/Utility/SimpleGeometryIterator - Polygon with Feature', (t) => {
+test('Domain/Iterator/IterablePair - Polygon with Feature', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(polygon), new SimpleGeometryIterator(feature));
     const expanded = [...iterator];
     const expected = [
@@ -160,7 +164,7 @@ test('Domain/Utility/SimpleGeometryIterator - Polygon with Feature', (t) => {
     t.end();
 });
 
-test('Domain/Utility/SimpleGeometryIterator - GeometryCollection with FeatureCollection', (t) => {
+test('Domain/Iterator/IterablePair - GeometryCollection with FeatureCollection', (t) => {
     const iterator = new IterablePairIterator(new SimpleGeometryIterator(geometrycollection), new SimpleGeometryIterator(featurecollection));
     const expanded = [...iterator];
     const expected = [

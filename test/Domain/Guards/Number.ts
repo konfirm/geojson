@@ -1,19 +1,9 @@
 import test from 'tape';
 import each from 'template-literal-each';
 import * as Export from '../../../source/Domain/Guards/Number';
+import { exported } from '../../helper/geometry';
 
-test('Domain/Guards/Number - exports', (t) => {
-	const expect = [
-		'isNumberValue',
-		'isNumberBetween',
-	];
-
-	t.deepEqual(Object.keys(Export), expect, `exports ${expect.join(', ')}`);
-	expect.forEach((key) => {
-		t.equal(typeof Export[key], 'function', `${key} is a function`);
-	});
-	t.end();
-});
+exported('Domain/Guards/Number - exports', Export, 'isNumberValue', 'isNumberBetween');
 
 const { isNumberValue, isNumberBetween } = Export;
 

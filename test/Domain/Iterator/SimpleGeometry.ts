@@ -1,5 +1,5 @@
 import test from 'tape';
-import { SimpleGeometryIterator } from '../../../source/Domain/Iterator/SimpleGeometry';
+import * as Export from '../../../source/Domain/Iterator/SimpleGeometry';
 import { Point } from '../../../source/Domain/GeoJSON/Geometry/Point';
 import { MultiPoint } from '../../../source/Domain/GeoJSON/Geometry/MultiPoint';
 import { LineString } from '../../../source/Domain/GeoJSON/Geometry/LineString';
@@ -9,7 +9,7 @@ import { MultiPolygon } from '../../../source/Domain/GeoJSON/Geometry/MultiPolyg
 import { GeometryCollection } from '../../../source/Domain/GeoJSON/GeometryCollection';
 import { Feature } from '../../../source/Domain/GeoJSON/Feature';
 import { FeatureCollection } from '../../../source/Domain/GeoJSON/FeatureCollection';
-import { explain } from '../../helper/geometry';
+import { explain, exported } from '../../helper/geometry';
 
 const point: Point = { type: 'Point', coordinates: [0, 0] };
 const multipoint: MultiPoint = { type: 'MultiPoint', coordinates: [[1, 1], [2, 2]] };
@@ -26,6 +26,10 @@ const featurecollection: FeatureCollection = {
         { type: 'Feature', properties: null, geometry: multipolygon },
     ]
 };
+
+exported('Domain/Utility/SimpleGeometryIterator', Export, 'SimpleGeometryIterator');
+
+const { SimpleGeometryIterator } = Export;
 
 test('Domain/Utility/SimpleGeometryIterator - implements Symbol.iterator', (t) => {
     const iterator = new SimpleGeometryIterator(point);

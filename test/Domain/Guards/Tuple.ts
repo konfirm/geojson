@@ -1,18 +1,9 @@
 import { isBoolean, isNumber, isString } from '@konfirm/guard';
 import test from 'tape';
 import * as Export from '../../../source/Domain/Guards/Tuple';
+import { exported } from '../../helper/geometry';
 
-test('Domain/Guards/Tuple - exports', (t) => {
-	const expect = [
-		'isTuple',
-	];
-
-	t.deepEqual(Object.keys(Export), expect, `exports ${expect.join(', ')}`);
-	expect.forEach((key) => {
-		t.equal(typeof Export[key], 'function', `${key} is a function`);
-	});
-	t.end();
-});
+exported('Domain/Guards/Tuple - exports', Export, 'isTuple');
 
 const { isTuple } = Export;
 

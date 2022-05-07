@@ -1,7 +1,11 @@
 import test from 'tape';
-import { distance } from '../../../source/Domain/Utility/Distance';
-import { explain } from '../../helper/geometry';
+import * as Export from '../../../source/Domain/Utility/Distance';
+import { explain, exported } from '../../helper/geometry';
 import { shapes } from '../../data/Distance';
+
+exported('Domain/Utility/Distance', Export, 'distance');
+
+const { distance } = Export;
 
 test(`Domain/Utility/Distance - distance`, (t) => {
     shapes

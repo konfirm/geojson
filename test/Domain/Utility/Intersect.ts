@@ -1,7 +1,11 @@
 import test from 'tape';
-import { intersect } from '../../../source/Domain/Utility/Intersect';
-import { explain } from '../../helper/geometry';
+import * as Export from '../../../source/Domain/Utility/Intersect';
+import { explain, exported } from '../../helper/geometry';
 import { shapes } from '../../data/Intersect';
+
+exported('Domain/Utility/Intersect', Export, 'intersect');
+
+const { intersect } = Export;
 
 const types = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon', 'GeometryCollection', 'Feature', 'FeatureCollection'];
 const combo = types.reduce((carry, a) => carry.concat(types.map((b) => [a, b])), [])

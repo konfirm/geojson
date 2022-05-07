@@ -1,28 +1,12 @@
 import test from 'tape';
 import each from 'template-literal-each';
-import * as Calculate from '../../../source/Domain/Utility/Calculate';
-import { explain } from '../../helper/geometry';
+import * as Export from '../../../source/Domain/Utility/Calculate';
+import { explain, exported } from '../../helper/geometry';
 
-test('Domain/Utility/Calculate - exports', (t) => {
-    const expected = [
-        'getClosestPointOnLineByPoint',
-        'getDistanceOfPointToPoint',
-        'getDistanceOfPointToLine',
-        'getDistanceOfLineToLine',
-        'isLinesCrossing',
-        'isPointOnLine',
-        'isPointInRing',
-    ];
-    const actual = Object.keys(Calculate);
-
-    t.deepEqual(actual, expected, `exports ${expected.join(', ')}`);
-    expected.forEach((key) => t.equal(typeof Calculate[key], 'function', `${key} is a function`))
-
-    t.end();
-});
+exported('Domain/Utility/Calculate', Export, 'getClosestPointOnLineByPoint', 'getDistanceOfPointToPoint', 'getDistanceOfPointToLine', 'getDistanceOfLineToLine', 'isLinesCrossing', 'isPointOnLine', 'isPointInRing');
 
 test('Domain/Utility/Calculate - getDistanceOfPointToPoint', (t) => {
-    const { getDistanceOfPointToPoint } = Calculate;
+    const { getDistanceOfPointToPoint } = Export;
 
     each`
         a                                         | b                                         | direct                 | haversine                    | vincenty
@@ -53,7 +37,7 @@ test('Domain/Utility/Calculate - getDistanceOfPointToPoint', (t) => {
 });
 
 test('Domain/Utility/Calculate - getDistanceOfPointToLine', (t) => {
-    const { getDistanceOfPointToLine } = Calculate;
+    const { getDistanceOfPointToLine } = Export;
     const line = [[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]];
 
     each`
@@ -83,7 +67,7 @@ test('Domain/Utility/Calculate - getDistanceOfPointToLine', (t) => {
 });
 
 test('Domain/Utility/Calculate - getDistanceOfLineToLine', (t) => {
-    const { getDistanceOfLineToLine } = Calculate;
+    const { getDistanceOfLineToLine } = Export;
 
     each`
         a                    | b                    | direct             | haversine          | vincenty
@@ -109,7 +93,7 @@ test('Domain/Utility/Calculate - getDistanceOfLineToLine', (t) => {
 });
 
 test('Domain/Utility/Calculate - getClosestPointOnLineByPoint', (t) => {
-    const { getClosestPointOnLineByPoint } = Calculate;
+    const { getClosestPointOnLineByPoint } = Export;
 
     each`
         point                                      | line                                                                                | closest
@@ -128,7 +112,7 @@ test('Domain/Utility/Calculate - getClosestPointOnLineByPoint', (t) => {
 });
 
 test('Domain/Utility/Calculate - isLinesCrossing', (t) => {
-    const { isLinesCrossing } = Calculate;
+    const { isLinesCrossing } = Export;
 
     each`
         a                      | b                      | crosses
@@ -147,7 +131,7 @@ test('Domain/Utility/Calculate - isLinesCrossing', (t) => {
 });
 
 test('Domain/Utility/Calculate - isPointOnLine', (t) => {
-    const { isPointOnLine } = Calculate;
+    const { isPointOnLine } = Export;
 
     each`
         point                                      | line                                                                                | match
@@ -170,7 +154,7 @@ test('Domain/Utility/Calculate - isPointOnLine', (t) => {
 });
 
 test('Domain/Utility/Calculate - isPointInRing', (t) => {
-    const { isPointInRing } = Calculate;
+    const { isPointInRing } = Export;
 
     each`
         point        | ring                                        | match

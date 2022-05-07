@@ -1,18 +1,9 @@
 import test from 'tape';
 import each from 'template-literal-each';
 import * as Export from '../../../source/Domain/Utility/Numeric';
+import { exported } from '../../helper/geometry';
 
-test('Domain/Utility/Numeric - exports', (t) => {
-	const expect = [
-		'bounds',
-	];
-
-	t.deepEqual(Object.keys(Export), expect, `exports ${expect.join(', ')}`);
-	expect.forEach((key) => {
-		t.equal(typeof Export[key], 'function', `${key} is a function`);
-	});
-	t.end();
-});
+exported('Domain/Utility/Numeric', Export, 'bounds');
 
 const { bounds } = Export;
 

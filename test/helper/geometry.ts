@@ -5,14 +5,21 @@ import { geometry, coordinates } from './malform';
 const shapes = Object.keys(Shapes).map((key) => Shapes[key]);
 const geometries = shapes.filter(({ coordinates }) => coordinates);
 
+function sortStringList(list: Array<string>): Array<string> {
+	return list.slice().sort((a, b) => a < b ? -1 : Number(a > b));
+}
+
 export function explain(value: any): string {
 	return JSON.stringify(value).replace(/^(.{20}).{3,}(.{20})$/, '$1 … $2');
 }
 
 export function exported(group, exports, ...expect: Array<string>) {
 	test(`${group} - exports`, (t) => {
-		t.deepEqual(Object.keys(exports), expect, `exports ${expect.join(', ')}`);
-		expect.forEach((key) => {
+		const defined = sortStringList(Object.keys(exports).filter((key) => typeof exports[key] !== 'undefined'));
+		const expected = sortStringList(expect);
+
+		t.deepEqual(defined, expected, `exports ${expect.join(', ')}`);
+		expected.forEach((key) => {
 			t.equal(typeof exports[key], 'function', `${key} is a function`);
 		});
 
