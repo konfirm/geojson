@@ -7,11 +7,11 @@ export type GeometryCollection = GeoJSONObject<{
 	geometries: Array<Geometries | GeometryCollection>;
 }>;
 
-const isGeometryCollectionObject = all(
+const isGeometryCollectionObject = all<GeometryCollection>(
 	isGeoJSONObject('GeometryCollection'),
 	isKeyOfType('geometries', isArrayOfType(any(isGeometries, isGeometryCollection)))
 );
-const isStrictGeometryCollectionObject = all(
+const isStrictGeometryCollectionObject = all<GeometryCollection>(
 	isGeoJSONObject('GeometryCollection'),
 	isKeyOfType('geometries', isArrayOfType(any(isStrictGeometries, isStrictGeometryCollection)))
 );
