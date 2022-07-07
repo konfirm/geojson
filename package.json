@@ -6,6 +6,13 @@
 	"main": "dist/geojson.cjs.js",
 	"module": "dist/geojson.es.js",
 	"types": "dist/geojson.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/geojson.es.js",
+			"require": "./dist/geojson.cjs.js",
+			"types": "./dist/geojson.d.ts"
+		}
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/konfirm/geojson.git"
@@ -29,7 +36,7 @@
 		"prepublish": "npm run build"
 	},
 	"keywords": [
-		"stringify"
+		"geojson"
 	],
 	"author": "Rogier Spieker <rogier+npm@konfirm.eu>",
 	"license": "MIT",
