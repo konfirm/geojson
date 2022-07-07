@@ -107,6 +107,11 @@ export const shapes: Array<{ a: GeoJSON, b: GeoJSON, intersect: boolean }> = [
     { a: Italy.multipolygon, b: geometry<Point>('Point', relative.inside2[0]), intersect: false },
     { a: Italy.multipolygon, b: geometry<Point>('Point', relative.outside1[0]), intersect: true },
     { a: Italy.multipolygon, b: geometry<Point>('Point', relative.outside2[0]), intersect: true },
+    {
+        a: geometry<MultiPolygon>('MultiPolygon', [[[[8, 8], [8, 9], [9, 9], [9, 8], [8, 8]]], [[[0, 0], [0, 7], [7, 7], [7, 0], [0, 0]]]]),
+        b: geometry<Point>('Point', [3, 3]),
+        intersect: true,
+    },
 
     // GeometryCollection <-> Point
     { a: geometryCollection(geometry<Point>('Point', relative.inside1[0])), b: geometry<Point>('Point', relative.inside1[0]), intersect: true },
