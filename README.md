@@ -1,3 +1,6 @@
+[![Release](https://github.com/konfirm/geojson/actions/workflows/release.yml/badge.svg)](https://github.com/konfirm/geojson/actions/workflows/release.yml)
+[![Tests](https://github.com/konfirm/geojson/actions/workflows/tests.yml/badge.svg)](https://github.com/konfirm/geojson/actions/workflows/tests.yml)
+
 # @konfirm/geojson
 
 GeoJSON validation, iteration, intersection and distance calculation.
