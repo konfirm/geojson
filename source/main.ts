@@ -1,7 +1,11 @@
-
+// intersect and distance functions
 export { intersect } from './Domain/Utility/Intersect';
 export { distance } from './Domain/Utility/Distance';
 
+// SimpleGeometryIterator
+export { SimpleGeometryIterator } from './Domain/Iterator/SimpleGeometry';
+
+// the individual GeoJSON types and type guards
 export { Position, isPosition, isStrictPosition } from './Domain/GeoJSON/Concept/Position';
 export { Point, isPoint, isStrictPoint } from './Domain/GeoJSON/Geometry/Point';
 export { MultiPoint, isMultiPoint, isStrictMultiPoint } from './Domain/GeoJSON/Geometry/MultiPoint';
@@ -13,4 +17,3 @@ export { GeometryCollection, isGeometryCollection, isStrictGeometryCollection } 
 export { Feature, isFeature, isStrictFeature } from './Domain/GeoJSON/Feature';
 export { FeatureCollection, isFeatureCollection, isStrictFeatureCollection } from './Domain/GeoJSON/FeatureCollection';
 export { GeoJSON, isGeoJSON, isStrictGeoJSON } from './Domain/GeoJSON/GeoJSON';
-

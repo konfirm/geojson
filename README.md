@@ -28,9 +28,9 @@ Most of the exported functionality is based on validation of GeoJSON objects, va
 The `isStrict*` variants of the type guards also validate the following:
  - `Longitude` is a number in the range (inclusive) `-180..180`
  - `Latitude` is a number in the range (inclusive) `-90..90`
- - `Altitude` is a number in the range (inclusive) `-6371008.7714..20180000` (Earth radius up to the GPS satelite distance)
+ - `Altitude` is a number in the range (inclusive) `-6371008.7714..20180000` (Earth center(-ish) up to the GPS satelite distance)
  - `Polygon` "LinearRing" are closed (first and last `Position` are identical)
- - `Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings, clockwise for interior rings)
+ - `Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))
 
 
 | type               | guard                  | strict guard                 | description                                                    |
@@ -79,7 +79,7 @@ const feature: Feature = {
     },
     geometry: {
         type: 'Polygon',
-        coordinates: [[[0,0], [2,1], [0,2], [0,2]]],
+        coordinates: [[[0, 0], [0, 2], [2, 1], [0, 0]]],
     },
 }
 
@@ -89,9 +89,9 @@ console.log('feature intersects point', intersect(feature, point)); // true
 
 ### distance
 
-Obtain the (shortest) distance (in meters) between two GeoJSON objects. There are three formulas which can be used:
+Obtain the (shortest) distance in meters between two GeoJSON objects. There are three formulas which can be used:
 
- - `direct` (default), calculates the distance between coordinates using the pythagoras formula, this is the fastest formula at the cost of accuracy
+ - `direct` (default), calculates the distance between coordinates using the Pythagorean equation, this is the fastest formula at the cost of (huge amount of) accuracy
  - `haversine`, calculates the distance between coordinates using the [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula), improves the accuracy to a level which is probably suitable for most needs with a decent performance
  - `vincenty`, calculates the distance between coordinates using the [Vincenty's formula](https://en.wikipedia.org/wiki/Vincenty%27s_formulae), the most accurate but the least performant algorithm.
 
@@ -122,11 +122,113 @@ import { distance, Feature } from '@konfirm/geojson';
     };
 
     console.log(distance(a, b));             // 8829424.604594177
-    console.log(distance(a, b, 'direct');    // 8829424.604594177 (same as default)
+    console.log(distance(a, b, 'direct');    // 8829424.604594177 ('direct' is the default)
     console.log(distance(a, b, 'haversine'); // 5847546.425707642
     console.log(distance(a, b, 'vincenty');  // 5863355.371234315
 ```
 
 ### SimpleGeometryIterator
 
-SimpleGeometryIterator
+The SimpleGeometryIterator class is a convenience helper utility which yeilds all simple Geometric shapes (`Point`, `LineString`, `Polygon`) from any GeoJSON object. Using a SimpleGeometryIterator allows you to focus on just implementing logic for the simple Geometric shapes whilst supporting any compbination of GeoJSON objects as input.
+
+| input type           | yields type(s)                     | description                                                                              |
+| -------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `Point`              | `Point`                            | yields the `Point` geometry as is                                                        |
+| `MultiPoint`         | `Point`                            | yields every `Point` of the `MultiPoint`                                                 |
+| `LineString`         | `LineString`                       | yields the `LineString` geometry as is                                                   |
+| `MultiLineString`    | `LineString`                       | yields every `LineString` of the `MultiLineString`                                       |
+| `Polygon`            | `Polygon`                          | yields the `Polygon` geometry as is                                                      |
+| `MultiPolygon`       | `Polygon`                          | yields every `Polygon` of the `MultiPolygon`                                             |
+| `GeometryCollection` | `Point`, `LineString` or `Polygon` | yields every geometry contained within the collection (see the corresponing types above) |
+| `Feature`            | `Point`, `LineString` or `Polygon` | yields the geometry of a feature (see the corresponding types above)                     |
+| `FeatureCollection`  | `Point`, `LineString` or `Polygon` | yields every `Feature` (see `Feature`)                                                   |
+
+```ts
+import type { Point, MultiPoint, LineString, MultiLineString, GeometryCollection, Feature, FeatureCollection } from '@konfirm/geojson';
+import { SimpleGeometryIterator } from '@konfirm/geojson';
+
+const point: Point = {
+    type: 'Point',
+    coordinates: [5.903949737548828, 51.991936460056515],
+};
+const multipoint: MultiPoint = {
+    type: 'MultiPoint',
+    coordinates: [
+        [5.896482467651367, 52.00039200820837],
+        [5.888843536376953, 51.99912377779024],
+    ],
+};
+const linestring: LineString = {
+    type: 'LineString',
+    coordinates: [
+        [5.9077370166778564, 51.9944435645134],
+        [5.90764045715332, 51.994209045542206],
+        [5.907415151596069, 51.99408683094357],
+    ],
+};
+const multilinestring: MultiLineString = {
+    type: 'MultiLineString',
+    coordinates: [
+        [
+            [5.905205011367797, 51.99430813821511],
+            [5.905086994171143, 51.994261894995034],
+            [5.905033349990845, 51.99414958983319],
+            [5.9051138162612915, 51.994116558849626]
+        ],
+        [
+            [5.904818773269653, 51.993825885143515],
+            [5.905521512031555, 51.993551725259614],
+            [5.905789732933044, 51.99358805979856],
+        ],
+    ],
+};
+const geometrycollection: GeometryCollection = {
+    type: 'GeometryCollection',
+    geometries: [point],
+};
+const featurecollection: FeatureCollection = {
+    type: 'FeatureCollection',
+    features: [
+        {
+            type: 'Feature',
+            properties: {},
+            geometry: linestring,
+        },
+        {
+            type: 'Feature',
+            properties: {},
+            geometry: multilinestring,
+        },
+    ]
+};
+
+const simplified = [...new SimpleGeometryIterator(multipoint, geometrycollection, featurecollection)];
+/*
+    [
+        {
+            type: 'Point',
+            coordinates: ...multipoint[0]
+        },
+        {
+            type: 'Point',
+            coordinates: ...multipoint[1]
+        },
+        {
+            type: 'Point',
+            coordinates: ...point
+        },
+        {
+            type: 'LineString',
+            coordinates: ...linestring
+        },
+        {
+            type: 'LineString',
+            coordinates: ...multilinestring[0]
+        },
+        {
+            type: 'LineString',
+            coordinates: ...multilinestring[1]
+        },
+    ]
+*/
+```
