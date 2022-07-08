@@ -5,7 +5,7 @@
 	"compilerOptions": {
 		"declaration": true,
 		"esModuleInterop": true,
-		"moduleResolution": "Node",
+		"moduleResolution": "NodeNext",
 		"outDir": "dist/",
 		"target": "ES2018"
 	}
