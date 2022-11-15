@@ -2,7 +2,7 @@ import * as Italy from './Italy';
 import * as HolySee from './HolySee';
 import * as SanMarino from './SanMarino';
 import { Feature, FeatureCollection, GeoJSON, GeometryCollection, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon } from '../../source/main';
-import { Geometries } from '../../source/Domain/GeoJSON/Geometries';
+import { Geometry } from '../../source/Domain/GeoJSON/Geometry';
 
 const relative = {
     outside1: [
@@ -43,21 +43,21 @@ function center(...points: Array<Array<number>>): Point['coordinates'] {
     return [x / c, y / c];
 }
 
-function geometry<T extends Geometries>(type: T['type'], coordinates: Array<unknown>): T {
+function geometry<T extends Geometry>(type: T['type'], coordinates: Array<unknown>): T {
     return {
         type,
         coordinates: coordinates.slice() as T['coordinates'],
     } as T;
 }
 
-function geometryCollection(...geometries: Array<Geometries | GeometryCollection>): GeometryCollection {
+function geometryCollection(...geometries: Array<Geometry | GeometryCollection>): GeometryCollection {
     return {
         type: 'GeometryCollection',
         geometries,
     };
 }
 
-function feature(geometry: Geometries): Feature {
+function feature(geometry: Geometry): Feature {
     return {
         type: 'Feature',
         properties: null,
@@ -65,7 +65,7 @@ function feature(geometry: Geometries): Feature {
     };
 }
 
-function featureCollection(...features: Array<Feature | Geometries>): FeatureCollection {
+function featureCollection(...features: Array<Feature | Geometry>): FeatureCollection {
     return {
         type: 'FeatureCollection',
         features: features.map((geo) => geo.type === 'Feature' ? geo : feature(geo)),

@@ -14,6 +14,7 @@ export { MultiLineString, isMultiLineString, isStrictMultiLineString } from './D
 export { Polygon, isPolygon, isStrictPolygon } from './Domain/GeoJSON/Geometry/Polygon';
 export { MultiPolygon, isMultiPolygon, isStrictMultiPolygon } from './Domain/GeoJSON/Geometry/MultiPolygon';
 export { GeometryCollection, isGeometryCollection, isStrictGeometryCollection } from './Domain/GeoJSON/GeometryCollection';
+export { Geometry, isGeometry, isStrictGeometry } from './Domain/GeoJSON/Geometry';
 export { Feature, isFeature, isStrictFeature } from './Domain/GeoJSON/Feature';
 export { FeatureCollection, isFeatureCollection, isStrictFeatureCollection } from './Domain/GeoJSON/FeatureCollection';
 export { GeoJSON, isGeoJSON, isStrictGeoJSON } from './Domain/GeoJSON/GeoJSON';

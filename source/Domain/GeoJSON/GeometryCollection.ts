@@ -1,19 +1,19 @@
 import { all, any, isArrayOfType, isKeyOfType } from "@konfirm/guard";
 import { GeoJSONObject, isGeoJSONObject } from "./Concept/GeoJSONObject";
-import { Geometries, isGeometries, isStrictGeometries } from "./Geometries";
+import { Geometry, isGeometry, isStrictGeometry } from "./Geometry";
 
 export type GeometryCollection = GeoJSONObject<{
 	type: 'GeometryCollection';
-	geometries: Array<Geometries | GeometryCollection>;
+	geometries: Array<Geometry | GeometryCollection>;
 }>;
 
 const isGeometryCollectionObject = all<GeometryCollection>(
 	isGeoJSONObject('GeometryCollection'),
-	isKeyOfType('geometries', isArrayOfType(any(isGeometries, isGeometryCollection)))
+	isKeyOfType('geometries', isArrayOfType(any(isGeometry, isGeometryCollection)))
 );
 const isStrictGeometryCollectionObject = all<GeometryCollection>(
 	isGeoJSONObject('GeometryCollection'),
-	isKeyOfType('geometries', isArrayOfType(any(isStrictGeometries, isStrictGeometryCollection)))
+	isKeyOfType('geometries', isArrayOfType(any(isStrictGeometry, isStrictGeometryCollection)))
 );
 export function isGeometryCollection(value: any): value is GeometryCollection {
 	return isGeometryCollectionObject(value)

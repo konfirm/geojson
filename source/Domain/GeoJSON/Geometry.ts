@@ -6,6 +6,6 @@ import { isMultiPolygon, isStrictMultiPolygon, MultiPolygon } from "./Geometry/M
 import { isPoint, isStrictPoint, Point } from "./Geometry/Point";
 import { isPolygon, isStrictPolygon, Polygon } from "./Geometry/Polygon";
 
-export type Geometries = Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon;
-export const isGeometries = any<Geometries>(isPoint, isMultiPoint, isLineString, isMultiLineString, isPolygon, isMultiPolygon);
-export const isStrictGeometries = any<Geometries>(isStrictPoint, isStrictMultiPoint, isStrictLineString, isStrictMultiLineString, isStrictPolygon, isStrictMultiPolygon);
+export type Geometry = Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon;
+export const isGeometry = any<Geometry>(isPoint, isMultiPoint, isLineString, isMultiLineString, isPolygon, isMultiPolygon);
+export const isStrictGeometry = any<Geometry>(isStrictPoint, isStrictMultiPoint, isStrictLineString, isStrictMultiLineString, isStrictPolygon, isStrictMultiPolygon);

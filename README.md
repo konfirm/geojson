@@ -36,19 +36,20 @@ The `isStrict*` variants of the type guards also validate the following:
  - `Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))
 
 
-| type               | guard                  | strict guard                 | description                                                    |
-| ------------------ | ---------------------- | ---------------------------- | -------------------------------------------------------------- |
-| Position           | `isPosition`           | `isStrictPosition`           | validate whether the input is valid GeoJSON Position           |
-| Point              | `isPoint`              | `isStrictPoint`              | validate whether the input is valid GeoJSON Point              |
-| MultiPoint         | `isMultiPoint`         | `isStrictMultiPoint`         | validate whether the input is valid GeoJSON MultiPoint         |
-| LineString         | `isLineString`         | `isStrictLineString`         | validate whether the input is valid GeoJSON LineString         |
-| MultiLineString    | `isMultiLineString`    | `isStrictMultiLineString`    | validate whether the input is valid GeoJSON MultiLineString    |
-| Polygon            | `isPolygon`            | `isStrictPolygon`            | validate whether the input is valid GeoJSON Polygon            |
-| MultiPolygon       | `isMultiPolygon`       | `isStrictMultiPolygon`       | validate whether the input is valid GeoJSON MultiPolygon       |
-| GeometryCollection | `isGeometryCollection` | `isStrictGeometryCollection` | validate whether the input is valid GeoJSON GeometryCollection |
-| Feature            | `isFeature`            | `isStrictFeature`            | validate whether the input is valid GeoJSON Feature            |
-| FeatureCollection  | `isFeatureCollection`  | `isStrictFeatureCollection`  | validate whether the input is valid GeoJSON FeatureCollection  |
-| GeoJSON            | `isGeoJSON`            | `isStrictGeoJSON`            | validate the input to be valid GeoJSON                         |
+| type               | guard                  | strict guard                 | description                                                                                                        |
+| ------------------ | ---------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Position           | `isPosition`           | `isStrictPosition`           | validate whether the input is valid GeoJSON Position                                                               |
+| Point              | `isPoint`              | `isStrictPoint`              | validate whether the input is valid GeoJSON Point                                                                  |
+| MultiPoint         | `isMultiPoint`         | `isStrictMultiPoint`         | validate whether the input is valid GeoJSON MultiPoint                                                             |
+| LineString         | `isLineString`         | `isStrictLineString`         | validate whether the input is valid GeoJSON LineString                                                             |
+| MultiLineString    | `isMultiLineString`    | `isStrictMultiLineString`    | validate whether the input is valid GeoJSON MultiLineString                                                        |
+| Polygon            | `isPolygon`            | `isStrictPolygon`            | validate whether the input is valid GeoJSON Polygon                                                                |
+| MultiPolygon       | `isMultiPolygon`       | `isStrictMultiPolygon`       | validate whether the input is valid GeoJSON MultiPolygon                                                           |
+| GeometryCollection | `isGeometryCollection` | `isStrictGeometryCollection` | validate whether the input is valid GeoJSON GeometryCollection                                                     |
+| Geometry           | `isGeometry`           | `isStrictGeometry`           | validate whether the input is valid GeoJSON Geometry (`Point`, `LineString`, `Polygon` or their `Multi*` variants) |
+| Feature            | `isFeature`            | `isStrictFeature`            | validate whether the input is valid GeoJSON Feature                                                                |
+| FeatureCollection  | `isFeatureCollection`  | `isStrictFeatureCollection`  | validate whether the input is valid GeoJSON FeatureCollection                                                      |
+| GeoJSON            | `isGeoJSON`            | `isStrictGeoJSON`            | validate the input to be valid GeoJSON                                                                             |
 
 ```ts
 import { isPoint, isStrictPoint } from '@konfirm/geojson';
