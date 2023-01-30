@@ -24,7 +24,7 @@ const EARTH_INVERSE_FLATTENING = 1 / EARTH_FLATTENING;
 
 
 const PointToPoint: { [key: string]: (...positions: [Point['coordinates'], Point['coordinates']]) => number } = {
-    direct([λa, φa], [λb, φb]) {
+    cartesian([λa, φa], [λb, φb]) {
         return EARTH_RADIUS * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)));
     },
     haversine([λa, φa], [λb, φb]) {
@@ -46,8 +46,9 @@ const PointToPoint: { [key: string]: (...positions: [Point['coordinates'], Point
         let σ = antipodal ? π : 0, sinσ = 0, cosσ = antipodal ? -1 : 1, sinSqσ = null; // σ = angular distance P₁ P₂ on the sphere
         let cos2σₘ = 1;                      // σₘ = angular distance on the sphere from the equator to the midpoint of the line
         let cosSqα = 1;                      // α = azimuth of the geodesic at the equator
+        let λʹ = null;
+        let iterations = 0;
 
-        let λʹ = null, iterations = 0;
         do {
             sinλ = Math.sin(λ);
             cosλ = Math.cos(λ);
@@ -78,7 +79,7 @@ const PointToPoint: { [key: string]: (...positions: [Point['coordinates'], Point
     },
 };
 
-export type PointToPointCalculation = keyof typeof PointToPoint | ((...position: [Point['coordinates'], Point['coordinates']]) => number);
+export type PointToPointCalculation = 'cartesian' | 'haversine' | 'vincenty' | ((a: Point['coordinates'], b: Point['coordinates']) => number);
 
 export function getClosestPointOnLineByPoint(point: Point['coordinates'], line: [Point['coordinates'], Point['coordinates']]): Point['coordinates'] {
     const [[px, py], [ax, ay], [bx, by]] = [point, ...line];
@@ -120,7 +121,7 @@ export function isLinesCrossing(a: [Point['coordinates'], Point['coordinates']],
 }
 
 export function isPointOnLine(point: Point['coordinates'], line: [Point['coordinates'], Point['coordinates']], threshold: number = 1e-14): boolean {
-    return getDistanceOfPointToLine(point, line, 'direct') < threshold;
+    return getDistanceOfPointToLine(point, line, 'cartesian') < threshold;
 }
 
 export function isPointInRing(p: Point['coordinates'], ring: Array<Point['coordinates']>): boolean {

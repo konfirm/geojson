@@ -9,9 +9,9 @@ const { distance } = Export;
 
 test(`Domain/Utility/Distance - distance`, (t) => {
     shapes
-        .forEach(({ a, b, direct, haversine, vincenty }) => {
-            t.equal(distance(a, b), direct, `default calculation: ${explain(a)} to ${explain(b)} is ${direct}`);
-            t.equal(distance(a, b, 'direct'), direct, `'direct' calculation: ${explain(a)} to ${explain(b)} is ${direct}`);
+        .forEach(({ a, b, cartesian, haversine, vincenty }) => {
+            t.equal(distance(a, b), cartesian, `default calculation: ${explain(a)} to ${explain(b)} is ${cartesian}`);
+            t.equal(distance(a, b, 'cartesian'), cartesian, `'cartesian' calculation: ${explain(a)} to ${explain(b)} is ${cartesian}`);
             t.equal(distance(a, b, 'haversine'), haversine, `'haversine' calculation: ${explain(a)} to ${explain(b)} is ${haversine}`);
             t.equal(distance(a, b, 'vincenty'), vincenty, `'vincenty' calculation: ${explain(a)} to ${explain(b)} is ${vincenty}`);
         });

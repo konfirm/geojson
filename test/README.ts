@@ -46,7 +46,7 @@ test('README - distance', (t) => {
     };
 
     t.equal(distance(a, b), 8829424.604594177, 'distance from a to b using default formula is 8829424.604594177');
-    t.equal(distance(a, b, 'direct'), 8829424.604594177, 'distance from a to b using direct formula is 8829424.604594177');
+    t.equal(distance(a, b, 'cartesian'), 8829424.604594177, 'distance from a to b using cartesian formula is 8829424.604594177');
     t.equal(distance(a, b, 'haversine'), 5847546.425707642, 'distance from a to b using haversine formula is 5847546.425707642');
     t.equal(distance(a, b, 'vincenty'), 5863355.371234315, 'distance from a to b using vincenty formula is 5863355.371234315');
 

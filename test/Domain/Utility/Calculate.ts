@@ -9,7 +9,7 @@ test('Domain/Utility/Calculate - getDistanceOfPointToPoint', (t) => {
     const { getDistanceOfPointToPoint } = Export;
 
     each`
-        a                                         | b                                         | direct                 | haversine                    | vincenty
+        a                                         | b                                         | cartesian              | haversine                    | vincenty
         ------------------------------------------|-------------------------------------------|------------------------|------------------------------|----------
         ${[0, 0]}                                 | ${[1, 0]}                                 |   111195.07973436874   |   111195.07973436874         |   111319.49079322325
         ${[0, 0]}                                 | ${[0, 1]}                                 |   111195.07973436874   |   111195.07973436874         |   110574.38855795695
@@ -31,7 +31,7 @@ test('Domain/Utility/Calculate - getDistanceOfPointToPoint', (t) => {
     });
 
     t.equal(getDistanceOfPointToPoint([0, 0], [0, 0], () => Math.PI), Math.PI, 'Allows for custom function');
-    t.throws(() => getDistanceOfPointToPoint([0, 0], [1, 1], 'unknown'), /Not a PointToPoint calculation function unknown/);
+    t.throws(() => getDistanceOfPointToPoint([0, 0], [1, 1], <any>'unknown'), /Not a PointToPoint calculation function unknown/);
 
     t.end();
 });
@@ -41,7 +41,7 @@ test('Domain/Utility/Calculate - getDistanceOfPointToLine', (t) => {
     const line = [[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]];
 
     each`
-        point                                      | line                | direct                | haversine             | vincenty         
+        point                                      | line                | cartesian             | haversine             | vincenty         
         -------------------------------------------|---------------------|-----------------------|-----------------------|----------
         ${[1, 1]}                                  | ${[[0, 0], [3, 3]]} |      0                |      0                |      0
         ${[2, 1]}                                  | ${[[0, 0], [3, 3]]} |  78626.794914751      |  78617.31500879859    |  78442.46603900737
@@ -61,7 +61,7 @@ test('Domain/Utility/Calculate - getDistanceOfPointToLine', (t) => {
     });
 
     t.equal(getDistanceOfPointToLine([0, 0], [[0, 0], [1, 1]], () => Math.PI), Math.PI, 'Allows for custom function');
-    t.throws(() => getDistanceOfPointToLine([0, 0], [[0, 0], [1, 1]], 'unknown'), /Not a PointToPoint calculation function unknown/);
+    t.throws(() => getDistanceOfPointToLine([0, 0], [[0, 0], [1, 1]], <any>'unknown'), /Not a PointToPoint calculation function unknown/);
 
     t.end();
 });
@@ -70,7 +70,7 @@ test('Domain/Utility/Calculate - getDistanceOfLineToLine', (t) => {
     const { getDistanceOfLineToLine } = Export;
 
     each`
-        a                    | b                    | direct             | haversine          | vincenty
+        a                    | b                    | cartesian          | haversine          | vincenty
         ---------------------|----------------------|--------------------|--------------------|----------
         ${[[1, 1], [2, 2]]}  | ${[[0, 0], [3, 3]]}  |      0             |      0             |      0
         ${[[1, 1], [20, 2]]} | ${[[0, 0], [30, 2]]} |  73965.86679042356 |  73965.72628462575 |  73555.60559277069
@@ -87,7 +87,7 @@ test('Domain/Utility/Calculate - getDistanceOfLineToLine', (t) => {
     });
 
     t.equal(getDistanceOfLineToLine([[0, 0], [1, 1]], [[0, 0], [1, 1]], () => Math.PI), Math.PI, 'Allows for custom function');
-    t.throws(() => getDistanceOfLineToLine([[0, 0], [0, 1]], [[1, 0], [1, 1]], 'unknown'), /Not a PointToPoint calculation function unknown/);
+    t.throws(() => getDistanceOfLineToLine([[0, 0], [0, 1]], [[1, 0], [1, 1]], <any>'unknown'), /Not a PointToPoint calculation function unknown/);
 
     t.end();
 });
