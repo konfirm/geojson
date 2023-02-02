@@ -42,8 +42,13 @@ const PointToPoint: { [key: string]: (...positions: [Point['coordinates'], Point
 
         const antipodal = Math.abs(L) > π / 2 || Math.abs(φ2 - φ1) > π / 2;
 
-        let λ = L, sinλ = null, cosλ = null; // λ = difference in longitude on an auxiliary sphere
-        let σ = antipodal ? π : 0, sinσ = 0, cosσ = antipodal ? -1 : 1, sinSqσ = null; // σ = angular distance P₁ P₂ on the sphere
+        let λ = L;
+        let sinλ = null;
+        let cosλ = null; // λ = difference in longitude on an auxiliary sphere
+        let σ = antipodal ? π : 0;
+        let sinσ = 0;
+        let cosσ = antipodal ? -1 : 1
+        let sinSqσ = null; // σ = angular distance P₁ P₂ on the sphere
         let cos2σₘ = 1;                      // σₘ = angular distance on the sphere from the equator to the midpoint of the line
         let cosSqα = 1;                      // α = azimuth of the geodesic at the equator
         let λʹ = null;

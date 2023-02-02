@@ -1,4 +1,4 @@
-import { all, isArrayOfType, isKeyOfType, isStructure } from "@konfirm/guard";
+import { all, isArrayOfType, isKeyOfType } from "@konfirm/guard";
 import { Feature, isFeature, isStrictFeature } from "./Feature";
 import { GeoJSONObject, isGeoJSONObject } from "./Concept/GeoJSONObject";
 
