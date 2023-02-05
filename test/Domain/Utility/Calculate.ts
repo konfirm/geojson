@@ -1,5 +1,5 @@
 import test from 'tape';
-import each from 'template-literal-each';
+import { each } from 'template-literal-each';
 import * as Export from '../../../source/Domain/Utility/Calculate';
 import { explain, exported } from '../../helper/geometry';
 

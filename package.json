@@ -31,7 +31,7 @@
 		"test:pretty:nix": "nyc --require ts-node/register tape 'test/**/*.ts' | tap-arc",
 		"test:pretty:win32": "nyc --require ts-node/register tape test/**/*.ts | tap-arc",
 		"prebuild": "tsc --declarationDir temp --declaration true --emitDeclarationOnly true",
-		"build": "rollup -c rollup.config.js",
+		"build": "rollup -c rollup.config.mjs",
 		"postbuild": "rm -rf temp",
 		"prepublish": "npm run build"
 	},
@@ -41,21 +41,21 @@
 	"author": "Rogier Spieker <rogier+npm@konfirm.eu>",
 	"license": "MIT",
 	"devDependencies": {
-		"@rollup/plugin-commonjs": "^22.0.1",
-		"@rollup/plugin-node-resolve": "^13.3.0",
-		"@rollup/plugin-typescript": "^8.3.3",
+		"@rollup/plugin-commonjs": "^24.0.1",
+		"@rollup/plugin-node-resolve": "^15.0.1",
+		"@rollup/plugin-terser": "^0.4.0",
+		"@rollup/plugin-typescript": "^11.0.0",
 		"@types/tape": "^4.13.2",
 		"nyc": "^15.1.0",
-		"rollup": "^2.75.7",
-		"rollup-plugin-dts": "^4.2.2",
-		"rollup-plugin-terser": "^7.0.2",
+		"rollup": "^3.14.0",
+		"rollup-plugin-dts": "^5.1.1",
 		"run-script-os": "^1.1.6",
-		"tap-arc": "^0.3.4",
-		"tape": "^5.5.3",
-		"template-literal-each": "^2.0.0",
-		"ts-node": "^10.8.2",
-		"tslib": "^2.4.0",
-		"typescript": "^4.7.4"
+		"tap-arc": "^0.3.5",
+		"tape": "^5.6.3",
+		"template-literal-each": "^3.0.0",
+		"ts-node": "^10.9.1",
+		"tslib": "^2.5.0",
+		"typescript": "^4.9.5"
 	},
 	"dependencies": {
 		"@konfirm/guard": "^2.0.0"

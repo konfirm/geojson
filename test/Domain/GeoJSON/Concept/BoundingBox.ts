@@ -1,5 +1,5 @@
 import test from 'tape';
-import each from 'template-literal-each';
+import { each } from 'template-literal-each';
 import * as Export from '../../../../source/Domain/GeoJSON/Concept/BoundingBox';
 import { exported } from '../../../helper/geometry';
 
