@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
-## [1.0.0] - ...
+## [1.0.0] - 2023-02-05
 
 _Initial release_
 
-[Unreleased]: https://github.com/konfirm/geojson/compare/v1.0.0...HEAD
+[unreleased]: https://github.com/konfirm/geojson/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/konfirm/geojson/releases/tag/v1.0.0

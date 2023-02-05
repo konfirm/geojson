@@ -3,7 +3,6 @@ import { EARTH_RADIUS, EARTH_RADIUS_MAJOR, EARTH_RADIUS_MINOR, EARTH_FLATTENING 
 
 const D2R = Math.PI / 180;
 const π = Math.PI;
-const ε = Number.EPSILON;
 
 function constrain(value: number, min: number, max: number): number {
     return Math.max(Math.min(value, max), min);

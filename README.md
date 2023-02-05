@@ -95,11 +95,11 @@ console.log('feature intersects point', intersect(feature, point)); // true
 
 Obtain the (shortest) distance in meters between two GeoJSON objects. There are three formulas which can be used:
 
- - `direct` (default), calculates the distance between coordinates using the Pythagorean equation, this is the fastest formula at the cost of (huge amount of) accuracy
+ - `cartesian` (default), calculates the distance between coordinates using the Pythagorean equation, this is the fastest formula at the cost of (huge amount of) accuracy
  - `haversine`, calculates the distance between coordinates using the [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula), improves the accuracy to a level which is probably suitable for most needs with a decent performance
  - `vincenty`, calculates the distance between coordinates using the [Vincenty's formula](https://en.wikipedia.org/wiki/Vincenty%27s_formulae), the most accurate but the least performant algorithm.
 
-Usage: `distance(<Geometry(Collection)|Feature(Collection)>, <Geometry(Collection)|Feature(Collection)> [, <'direct'|'haversine'|'vincenty'>]): number`
+Usage: `distance(<Geometry(Collection)|Feature(Collection)>, <Geometry(Collection)|Feature(Collection)> [, <'cartesian'|'haversine'|'vincenty'>]): number`
 
 ```ts
 import { distance, Feature } from '@konfirm/geojson';
@@ -239,7 +239,7 @@ const simplified = [...new SimpleGeometryIterator(multipoint, geometrycollection
 
 ## License
 
-MIT License Copyright (c) 2021-2022 Rogier Spieker (Konfirm)
+MIT License Copyright (c) 2021-2023 Rogier Spieker (Konfirm)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
