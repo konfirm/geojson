@@ -1,4 +1,5 @@
 import test from 'tape';
+import type { GeoJSON } from '../../../source/main';
 import * as Export from '../../../source/Domain/Utility/Intersect';
 import { explain, exported } from '../../helper/geometry';
 import { shapes } from '../../data/Intersect';
@@ -8,20 +9,22 @@ exported('Domain/Utility/Intersect', Export, 'intersect');
 const { intersect } = Export;
 
 const types = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon', 'GeometryCollection', 'Feature', 'FeatureCollection'];
-const combo = types.reduce((carry, a) => carry.concat(types.map((b) => [a, b])), [])
+const combo = types.reduce((carry, a) => carry.concat(types.map((b) => [a, b])), <Array<[string, string]>>[])
+
+type Combo = { a: GeoJSON, b: GeoJSON, intersect: boolean };
 
 combo.forEach(([ta, tb]) => {
 	const tests = shapes
 		.reduce((carry, { a, b, intersect }) => {
 			if (a.type === ta && b.type === tb) {
-				return carry.concat({ a, b, intersect });
+				return carry.concat(<Combo>{ a, b, intersect });
 			}
 			if (a.type === tb && b.type === ta) {
-				return carry.concat({ a: b, b: a, intersect });
+				return carry.concat(<Combo>{ a: b, b: a, intersect });
 			}
 
 			return carry;
-		}, []);
+		}, <Array<Combo>>[]);
 	const hits = tests.filter(({ intersect }) => intersect);
 	const miss = tests.filter(({ intersect }) => !intersect);
 
