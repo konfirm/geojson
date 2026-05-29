@@ -1,5 +1,4 @@
-import { isArrayOfType } from "@konfirm/guard";
-import { Guard } from "../../Guards/Utility";
+import { type Guard, isArrayOfType } from '@konfirm/guard';
 import { isGeometryObject, type MultiGeometryObject } from '../GeometryObject';
 import {
 	isPointCoordinates,

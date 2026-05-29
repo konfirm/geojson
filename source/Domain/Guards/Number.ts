@@ -1,5 +1,4 @@
-import { isNumber } from '@konfirm/guard';
-import { Guard } from './Utility';
+import { type Guard, isNumber } from '@konfirm/guard';
 
 export function isNumberValue<T extends number>(value: unknown): value is T {
 	return isNumber(value) && Number.isFinite(value);

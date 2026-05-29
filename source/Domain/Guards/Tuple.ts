@@ -1,5 +1,4 @@
-import { isArray, Validator } from "@konfirm/guard";
-import { Guard } from './Utility';
+import { type Guard, isArray, type Validator } from '@konfirm/guard';
 
 export function isTuple<T extends Array<unknown>>(
 	...rules: Array<Validator>

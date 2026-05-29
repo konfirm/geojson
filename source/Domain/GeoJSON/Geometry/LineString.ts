@@ -1,4 +1,4 @@
-import { Guard } from "../../Guards/Utility";
+import type { Guard } from '@konfirm/guard';
 import { type GeometryObject, isGeometryObject } from '../GeometryObject';
 import {
 	isMultiPointCoordinates,
