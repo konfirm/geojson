@@ -34,7 +34,7 @@ const PointToPoint: { [key: string]: (...positions: [Point['coordinates'], Point
     },
     vincenty(...points) {
         //https://www.movable-type.co.uk/scripts/latlong-vincenty.html
-        const [[λ1, φ1], [λ2, φ2]] = points.map((p) => p.map(rad));
+        const [[λ1, φ1], [λ2, φ2]] = points.map((p) => (p as number[]).map(rad));
         const L = λ2 - λ1; // L = difference in longitude, U = reduced latitude, defined by tan U = (1-f)·tanφ.
         const tanU1 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ1), cosU1 = 1 / Math.sqrt((1 + tanU1 * tanU1)), sinU1 = tanU1 * cosU1;
         const tanU2 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ2), cosU2 = 1 / Math.sqrt((1 + tanU2 * tanU2)), sinU2 = tanU2 * cosU2;

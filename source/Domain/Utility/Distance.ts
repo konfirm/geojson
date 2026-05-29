@@ -46,11 +46,12 @@ const geometries = {
 };
 
 export function distance(a: GeoJSON, b: GeoJSON, calculation: PointToPointCalculation = 'cartesian'): number {
+    const lookup = geometries as Record<string, (a: unknown, b: unknown, calculation: PointToPointCalculation) => number>;
     return Math.min(...[...new IterablePairIterator(new SimpleGeometryIterator(a), new SimpleGeometryIterator(b))].map(([a, b]) => {
-        return a.type + b.type in geometries
-            ? geometries[a.type + b.type](a.coordinates, b.coordinates, calculation)
-            : b.type + a.type in geometries
-                ? geometries[b.type + a.type](b.coordinates, a.coordinates, calculation)
+        return a.type + b.type in lookup
+            ? lookup[a.type + b.type](a.coordinates, b.coordinates, calculation)
+            : b.type + a.type in lookup
+                ? lookup[b.type + a.type](b.coordinates, a.coordinates, calculation)
                 : Infinity
     }));
 }

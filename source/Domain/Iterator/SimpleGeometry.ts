@@ -48,8 +48,9 @@ export class SimpleGeometryIterator {
      * @memberof SimpleGeometryIterator
      */
     private *unwrap(geo: GeoJSON): Iterable<SimpleGeometry> {
-        geo.type in this
-            ? yield* this[geo.type](geo)
+        const self = this as Record<string, unknown>;
+        typeof self[geo.type] === 'function'
+            ? yield* (self[geo.type] as (geo: GeoJSON) => Iterable<SimpleGeometry>)(geo)
             : yield geo as SimpleGeometry;
     }
 

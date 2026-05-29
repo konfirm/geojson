@@ -32,8 +32,9 @@ const geometries = {
 };
 
 export function intersect(a: GeoJSON, b: GeoJSON): boolean {
+	const lookup = geometries as Record<string, (a: unknown, b: unknown) => boolean>;
 	for (const [itA, itB] of new IterablePairIterator(new SimpleGeometryIterator(a), new SimpleGeometryIterator(b))) {
-		if ((itA.type + itB.type in geometries && geometries[itA.type + itB.type](itA.coordinates, itB.coordinates)) || (itB.type + itA.type in geometries && geometries[itB.type + itA.type](itB.coordinates, itA.coordinates))) {
+		if ((itA.type + itB.type in lookup && lookup[itA.type + itB.type](itA.coordinates, itB.coordinates)) || (itB.type + itA.type in lookup && lookup[itB.type + itA.type](itB.coordinates, itA.coordinates))) {
 			return true;
 		}
 	}
