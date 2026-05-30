@@ -20,7 +20,9 @@
 		"url": "https://github.com/konfirm/geojson/issues"
 	},
 	"scripts": {
-		"test": "node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
+		"test": "npm run test:unit && npm run test:integration",
+		"test:unit": "node --require ./test.register.cjs --test 'source/**/*.spec.ts'",
+		"test:integration": "node --require ./test.register.cjs --test 'test/**/*.spec.ts'",
 		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
 		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r html -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
 		"build": "tsup",
@@ -28,7 +30,10 @@
 		"format": "biome format",
 		"check": "biome check",
 		"check:write": "biome check --write",
-		"prepublish": "npm run build"
+		"release": "release-it --ci",
+		"release:beta": "release-it --preRelease=beta --ci",
+		"prepublish": "npm run build",
+		"prepare": "husky || true"
 	},
 	"keywords": [
 		"geojson"
@@ -37,13 +42,41 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.16",
+		"@commitlint/config-conventional": "^20.5.3",
+		"@release-it/conventional-changelog": "^10.0.6",
 		"@types/node": "^22.0.0",
+		"commitlint": "^20.5.3",
+		"husky": "^9.1.7",
 		"one-double-zero": "^1.1.1",
+		"release-it": "^19.2.4",
 		"template-literal-each": "^3.0.0",
 		"ts-node": "^10.9.1",
 		"tslib": "^2.5.0",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.0"
+	},
+	"release-it": {
+		"git": {
+			"commitMessage": "chore: release v${version}",
+			"tagName": "v${version}",
+			"requireCleanWorkingDir": true,
+			"push": true,
+			"pushTags": true
+		},
+		"github": {
+			"release": true,
+			"tokenRef": "GITHUB_TOKEN"
+		},
+		"npm": {
+			"publish": false,
+			"skipChecks": true
+		},
+		"plugins": {
+			"@release-it/conventional-changelog": {
+				"preset": "conventionalcommits",
+				"infile": "CHANGELOG.md"
+			}
+		}
 	},
 	"dependencies": {
 		"@konfirm/guard": "^2.0.0"
