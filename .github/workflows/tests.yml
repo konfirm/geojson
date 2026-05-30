@@ -2,54 +2,49 @@ name: Tests
 
 on:
   push:
-    branches:
-      - "main"
-      - "develop"
-      - "release"
-      - "fix/*"
-      - "feature/*"
-    paths-ignore:
-      - "**.md"
+    branches: [main, release, "fix/*", "feat/*"]
+    paths-ignore: ["**.md"]
   pull_request:
-    types: [opened, synchronize, closed]
-    paths-ignore:
-      - "**.md"
+    types: [opened, synchronize]
+    paths-ignore: ["**.md"]
 
 jobs:
-  test-typescript:
+  test:
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-        node-version:
-          - 22
-          - 24
+        node: [22, 24]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ matrix.node }}
           cache: npm
+
       - run: npm ci
-      - run: npm run test:pretty
+
+      - run: npm run test:coverage
 
   build:
-    needs: test-typescript
+    needs: test
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+
       - run: npm ci
+
       - run: npm run build
+
       - uses: actions/upload-artifact@v4
         with:
-          name: bundle
+          name: dist
           path: dist/
