@@ -11,5 +11,5 @@
 		"ignoreDeprecations": "6.0"
 	},
 	"include": ["source/**/*.ts"],
-	"exclude": ["node_modules", "dist"]
+	"exclude": ["node_modules", "dist", "source/**/*.spec.ts"]
 }
