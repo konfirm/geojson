@@ -1,0 +1,56 @@
+name: Preview release version
+
+on:
+  pull_request:
+    branches: [main, release]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Calculate next version
+        id: next
+        run: |
+          if [ "${{ github.base_ref }}" = "release" ]; then
+            NEXT=$(npx release-it --ci --dry-run --release-version )
+          else
+            NEXT=$(npx release-it --preRelease=beta --ci --dry-run --release-version )
+          fi
+          echo "version=${NEXT}" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: Merging this PR will release
+
+      - name: Post version comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: "📦 Merging this PR will release **v${{ steps.next.outputs.version }}**"
+          edit-mode: replace

@@ -1,7 +1,7 @@
-import { isNumberBetween, isNumberValue } from "../../Guards/Number";
+import { isNumberBetween, isNumberValue } from '../../Guards/Number';
 
 export type Latitude = number;
-export function isLatitude(value: any): value is Latitude {
+export function isLatitude(value: unknown): value is Latitude {
 	return isNumberValue(value);
 }
 export const isStrictLatitude = isNumberBetween<Latitude>(-90, 90);

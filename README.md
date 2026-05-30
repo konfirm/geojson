@@ -125,8 +125,8 @@ import { distance, Feature } from '@konfirm/geojson';
         },
     };
 
-    console.log(distance(a, b));             // 8829424.604594177
-    console.log(distance(a, b, 'direct');    // 8829424.604594177 ('direct' is the default)
+    console.log(distance(a, b));             // 8829424.604594177 ('cartesian' is the default)
+    console.log(distance(a, b, 'cartesian'); // 8829424.604594177
     console.log(distance(a, b, 'haversine'); // 5847546.425707642
     console.log(distance(a, b, 'vincenty');  // 5863355.371234315
 ```
