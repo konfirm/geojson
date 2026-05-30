@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { point, linestring, polygon, geometrycollection, feature, featurecollection } from '../../../test/data/Shapes';
+import {
+	feature,
+	featurecollection,
+	geometrycollection,
+	linestring,
+	point,
+	polygon,
+} from '../../../test/data/Shapes';
 import { isGeometry, isStrictGeometry } from './Geometry';
 
 describe('isGeometry', () => {
@@ -9,8 +16,32 @@ describe('isGeometry', () => {
 		assert.ok(isGeometry(linestring));
 		assert.ok(isGeometry(polygon));
 		assert.ok(isGeometry({ type: 'MultiPoint', coordinates: [[0, 0]] }));
-		assert.ok(isGeometry({ type: 'MultiLineString', coordinates: [[[0, 0], [1, 1]]] }));
-		assert.ok(isGeometry({ type: 'MultiPolygon', coordinates: [[[[0, 0], [1, 0], [1, 1], [0, 0]]]] }));
+		assert.ok(
+			isGeometry({
+				type: 'MultiLineString',
+				coordinates: [
+					[
+						[0, 0],
+						[1, 1],
+					],
+				],
+			}),
+		);
+		assert.ok(
+			isGeometry({
+				type: 'MultiPolygon',
+				coordinates: [
+					[
+						[
+							[0, 0],
+							[1, 0],
+							[1, 1],
+							[0, 0],
+						],
+					],
+				],
+			}),
+		);
 	});
 	test('rejects container types', () => {
 		assert.ok(!isGeometry(geometrycollection));

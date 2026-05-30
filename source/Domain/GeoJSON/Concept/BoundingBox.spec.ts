@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
+import type { Improbability } from '../../../../test/helper/spec';
 import * as Export from './BoundingBox';
 
 const { isBoundingBox, isStrictBoundingBox } = Export;
@@ -23,8 +24,11 @@ describe('Domain/GeoJSON/Concept/BoundingBox', () => {
 				${[-180, -90, 0, 180, 90, 0]}
 				${[180, -90, 0, -180, 90, 0]}
 				${[-181, -91, 0, 181, 91, 0]}
-			`(({ input }: any) => {
-				assert.ok(isBoundingBox(input), `[${input}] is a valid bounding box`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					isBoundingBox(input),
+					`[${input}] is a valid bounding box`,
+				);
 			});
 		});
 
@@ -43,8 +47,11 @@ describe('Domain/GeoJSON/Concept/BoundingBox', () => {
 				${[-180, -90, 0, 180, 90]}
 				${[180, 90, 0, -180, -90, 0]}
 				${[-180, 90, 0, 180, -90, 0]}
-			`(({ input }: any) => {
-				assert.ok(!isBoundingBox(input), `[${input}] is not a valid bounding box`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isBoundingBox(input),
+					`[${input}] is not a valid bounding box`,
+				);
 			});
 		});
 	});
@@ -64,8 +71,11 @@ describe('Domain/GeoJSON/Concept/BoundingBox', () => {
 				${[0, 0, 0, 0, 0, 0]}
 				${[-180, -90, 0, 180, 90, 0]}
 				${[180, -90, 0, -180, 90, 0]}
-			`(({ input }: any) => {
-				assert.ok(isStrictBoundingBox(input), `[${input}] is a valid strict bounding box`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					isStrictBoundingBox(input),
+					`[${input}] is a valid strict bounding box`,
+				);
 			});
 		});
 
@@ -86,8 +96,11 @@ describe('Domain/GeoJSON/Concept/BoundingBox', () => {
 				${[180, 90, 0, -180, -90, 0]}
 				${[-180, 90, 0, 180, -90, 0]}
 				${[-181, -91, 0, 181, 91, 0]}
-			`(({ input }: any) => {
-				assert.ok(!isStrictBoundingBox(input), `[${input}] is not a valid strict bounding box`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isStrictBoundingBox(input),
+					`[${input}] is not a valid strict bounding box`,
+				);
 			});
 		});
 	});

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { GeoJSON } from '../../../source/main';
 import { intersect } from '../../../source/Domain/Utility/Intersect';
-import { explain } from '../../helper/spec';
+import { explain, type Improbability } from '../../helper/spec';
 import { shapes } from '../../data/Intersect';
 
 const types = [
@@ -44,7 +44,7 @@ describe('Intersect — all geometry type combinations', () => {
 	}
 
 	test('invalid GeoJSON types do not intersect', () => {
-		for (const s of (shapes as any[]).filter((s) => s.a.type === 'Impossible' || s.b.type === 'Impossible')) {
+		for (const s of (shapes as Improbability[]).filter((s) => s.a.type === 'Impossible' || s.b.type === 'Impossible')) {
 			assert.ok(!intersect(s.a, s.b), `${explain(s.a)} ∦ ${explain(s.b)}`);
 		}
 	});

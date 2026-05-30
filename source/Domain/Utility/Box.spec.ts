@@ -1,31 +1,61 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { point, multipoint, polygon, featurecollection } from '../../../test/data/Shapes';
+import {
+	featurecollection,
+	multipoint,
+	point,
+	polygon,
+} from '../../../test/data/Shapes';
 import { createBox, createBoxFromCoordinates, isWithinBox } from './Box';
 
 describe('Domain/Utility/Box', () => {
 	describe('createBoxFromCoordinates', () => {
 		test('a single position produces a degenerate box (point)', () => {
-			assert.deepStrictEqual(createBoxFromCoordinates([1, 2]), [1, 2, 1, 2]);
+			assert.deepStrictEqual(
+				createBoxFromCoordinates([1, 2]),
+				[1, 2, 1, 2],
+			);
 		});
 
 		test('a line stretches the box to cover both endpoints', () => {
-			assert.deepStrictEqual(createBoxFromCoordinates([[0, 1], [3, 4]]), [0, 1, 3, 4]);
+			assert.deepStrictEqual(
+				createBoxFromCoordinates([
+					[0, 1],
+					[3, 4],
+				]),
+				[0, 1, 3, 4],
+			);
 		});
 
 		test('a polygon ring computes the axis-aligned bounding box', () => {
 			assert.deepStrictEqual(
-				createBoxFromCoordinates([[[0, 0], [0, 3], [4, 3], [4, 0], [0, 0]]]),
+				createBoxFromCoordinates([
+					[
+						[0, 0],
+						[0, 3],
+						[4, 3],
+						[4, 0],
+						[0, 0],
+					],
+				]),
 				[0, 0, 4, 3],
 			);
 		});
 
 		test('negative coordinates are handled correctly', () => {
-			assert.deepStrictEqual(createBoxFromCoordinates([[-10, -5], [5, 3]]), [-10, -5, 5, 3]);
+			assert.deepStrictEqual(
+				createBoxFromCoordinates([
+					[-10, -5],
+					[5, 3],
+				]),
+				[-10, -5, 5, 3],
+			);
 		});
 
 		test('works for real-world polygon coordinates', () => {
-			const [minLon, minLat, maxLon, maxLat] = createBoxFromCoordinates(polygon.coordinates);
+			const [minLon, minLat, maxLon, maxLat] = createBoxFromCoordinates(
+				polygon.coordinates,
+			);
 			assert.ok(minLon < maxLon);
 			assert.ok(minLat < maxLat);
 		});

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
-import * as Export from './ExteriorRing';
+import { coordinates as HolySee } from '../../../../test/data/HolySee';
 import { coordinates as Italy } from '../../../../test/data/Italy';
 import { coordinates as SanMarino } from '../../../../test/data/SanMarino';
-import { coordinates as HolySee } from '../../../../test/data/HolySee';
+import type { Improbability } from '../../../../test/helper/spec';
+import * as Export from './ExteriorRing';
 
 const { isExteriorRing, isStrictExteriorRing } = Export;
 
@@ -18,8 +19,11 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 				${[[1, 0], [0, 0.5], [0, 1], [1, 1], [1, 0]]}
 				${[[1, 0], [1, 1], [0, 1], [1, 0]]}
 				${[[-181, -91], [0, -91], [0, 91], [-181, -91]]}
-			`(({ input }: any) => {
-				assert.ok(isExteriorRing(input), `${JSON.stringify(input)} is an exterior ring`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					isExteriorRing(input),
+					`${JSON.stringify(input)} is an exterior ring`,
+				);
 			});
 		});
 
@@ -34,8 +38,11 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 				${[[1, 0], [1, 1], [1, 0]]}
 				${[[1, 0], [1, 0]]}
 				${[[1, 0]]}
-			`(({ input }: any) => {
-				assert.ok(!isExteriorRing(input), `${JSON.stringify(input)} is not an exterior ring`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isExteriorRing(input),
+					`${JSON.stringify(input)} is not an exterior ring`,
+				);
 			});
 		});
 
@@ -55,8 +62,11 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 				input
 				---
 				${[[1, 0], [0, 0.5], [0, 1], [1, 1], [1, 0]]}
-			`(({ input }: any) => {
-				assert.ok(isStrictExteriorRing(input), `${JSON.stringify(input)} is a strict exterior ring`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					isStrictExteriorRing(input),
+					`${JSON.stringify(input)} is a strict exterior ring`,
+				);
 			});
 		});
 
@@ -74,14 +84,21 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 				${[[1, 0], [1, 0]]}
 				${[[1, 0]]}
 				${[[-181, -91], [0, -91], [0, 91], [-181, -91]]}
-			`(({ input }: any) => {
-				assert.ok(!isStrictExteriorRing(input), `${JSON.stringify(input)} is not a strict exterior ring`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isStrictExteriorRing(input),
+					`${JSON.stringify(input)} is not a strict exterior ring`,
+				);
 			});
 		});
 
 		test('first ring of each Italy polygon is a strict exterior ring', () => {
-			assert.ok(!Italy.every((polygon) => polygon.every(isStrictExteriorRing)));
-			assert.ok(Italy.every((polygon) => isStrictExteriorRing(polygon[0])));
+			assert.ok(
+				!Italy.every((polygon) => polygon.every(isStrictExteriorRing)),
+			);
+			assert.ok(
+				Italy.every((polygon) => isStrictExteriorRing(polygon[0])),
+			);
 			assert.ok(
 				Italy.filter((polygon) => polygon.length > 1).every(
 					(polygon) => !polygon.slice(1).some(isStrictExteriorRing),

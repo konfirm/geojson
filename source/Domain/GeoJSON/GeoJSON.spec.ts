@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { point, feature, featurecollection, geometrycollection } from '../../../test/data/Shapes';
+import {
+	feature,
+	featurecollection,
+	geometrycollection,
+	point,
+} from '../../../test/data/Shapes';
 import { isGeoJSON, isStrictGeoJSON } from './GeoJSON';
 
 describe('isGeoJSON', () => {

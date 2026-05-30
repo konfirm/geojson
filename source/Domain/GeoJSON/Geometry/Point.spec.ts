@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { point, multipoint } from '../../../../test/data/Shapes';
-import { isPoint, isPointCoordinates, isStrictPoint, isStrictPointCoordinates } from './Point';
+import { multipoint, point } from '../../../../test/data/Shapes';
+import {
+	isPoint,
+	isPointCoordinates,
+	isStrictPoint,
+	isStrictPointCoordinates,
+} from './Point';
 
 describe('isPointCoordinates', () => {
 	test('accepts a 2D position', () => {
@@ -11,7 +16,12 @@ describe('isPointCoordinates', () => {
 		assert.ok(isPointCoordinates([0, 0, 100]));
 	});
 	test('rejects an array of positions', () => {
-		assert.ok(!isPointCoordinates([[0, 0], [1, 1]]));
+		assert.ok(
+			!isPointCoordinates([
+				[0, 0],
+				[1, 1],
+			]),
+		);
 	});
 	test('rejects non-finite values', () => {
 		assert.ok(!isPointCoordinates([Infinity, 0]));

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { Feature, LineString, Point, Polygon } from '../../main';
+import type { Improbability } from '../../../test/helper/spec';
+import type { Feature, Point, Polygon } from '../../main';
 import { distance } from './Distance';
 
 const amsterdam: Feature = {
@@ -17,11 +18,17 @@ const jfk: Feature = {
 describe('distance', () => {
 	describe('formula variants', () => {
 		test('defaults to cartesian', () => {
-			assert.strictEqual(distance(amsterdam, jfk), distance(amsterdam, jfk, 'cartesian'));
+			assert.strictEqual(
+				distance(amsterdam, jfk),
+				distance(amsterdam, jfk, 'cartesian'),
+			);
 		});
 		test('haversine gives a shorter result than cartesian for real-world coordinates', () => {
 			// cartesian treats lon/lat as a flat plane; haversine accounts for curvature
-			assert.ok(distance(amsterdam, jfk, 'haversine') < distance(amsterdam, jfk, 'cartesian'));
+			assert.ok(
+				distance(amsterdam, jfk, 'haversine') <
+					distance(amsterdam, jfk, 'cartesian'),
+			);
 		});
 		test('vincenty is within 1% of haversine', () => {
 			const h = distance(amsterdam, jfk, 'haversine');
@@ -37,14 +44,33 @@ describe('distance', () => {
 			assert.strictEqual(distance(origin, origin), 0);
 		});
 		test('point to point is positive', () => {
-			assert.ok(distance(origin, { type: 'Point', coordinates: [1, 1] }) > 0);
+			assert.ok(
+				distance(origin, { type: 'Point', coordinates: [1, 1] }) > 0,
+			);
 		});
 		test('point inside polygon has distance 0', () => {
-			const poly: Polygon = { type: 'Polygon', coordinates: [[[0, 0], [0, 2], [2, 2], [2, 0], [0, 0]]] };
-			assert.strictEqual(distance({ type: 'Point', coordinates: [1, 1] }, poly), 0);
+			const poly: Polygon = {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[0, 0],
+						[0, 2],
+						[2, 2],
+						[2, 0],
+						[0, 0],
+					],
+				],
+			};
+			assert.strictEqual(
+				distance({ type: 'Point', coordinates: [1, 1] }, poly),
+				0,
+			);
 		});
 		test('returns Infinity for unhandled geometry types', () => {
-			const unknown = { type: 'Impossible', coordinates: [0, 0] } as any;
+			const unknown = {
+				type: 'Impossible',
+				coordinates: [0, 0],
+			} as Improbability;
 			assert.strictEqual(distance(origin, unknown), Infinity);
 		});
 	});

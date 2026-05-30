@@ -1,11 +1,27 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { multilinestring, polygon } from '../../../../test/data/Shapes';
-import { isMultiLineString, isMultiLineStringCoordinates, isStrictMultiLineString, isStrictMultiLineStringCoordinates } from './MultiLineString';
+import {
+	isMultiLineString,
+	isMultiLineStringCoordinates,
+	isStrictMultiLineString,
+	isStrictMultiLineStringCoordinates,
+} from './MultiLineString';
 
 describe('isMultiLineStringCoordinates', () => {
 	test('accepts an array of line strings', () => {
-		assert.ok(isMultiLineStringCoordinates([[[0, 0], [1, 1]], [[2, 2], [3, 3]]]));
+		assert.ok(
+			isMultiLineStringCoordinates([
+				[
+					[0, 0],
+					[1, 1],
+				],
+				[
+					[2, 2],
+					[3, 3],
+				],
+			]),
+		);
 		assert.ok(isMultiLineStringCoordinates(multilinestring.coordinates));
 	});
 	test('also accepts polygon coordinates — structurally identical at this level', () => {
@@ -15,19 +31,41 @@ describe('isMultiLineStringCoordinates', () => {
 		assert.ok(isMultiLineStringCoordinates(polygon.coordinates));
 	});
 	test('rejects a single line string (unwrapped)', () => {
-		assert.ok(!isMultiLineStringCoordinates([[0, 0], [1, 1]]));
+		assert.ok(
+			!isMultiLineStringCoordinates([
+				[0, 0],
+				[1, 1],
+			]),
+		);
 	});
 });
 
 describe('isStrictMultiLineStringCoordinates', () => {
 	test('rejects out-of-range positions', () => {
-		assert.ok(!isStrictMultiLineStringCoordinates([[[-181, 0], [0, 0]]]));
+		assert.ok(
+			!isStrictMultiLineStringCoordinates([
+				[
+					[-181, 0],
+					[0, 0],
+				],
+			]),
+		);
 	});
 });
 
 describe('isMultiLineString', () => {
 	test('accepts a valid MultiLineString', () => {
-		assert.ok(isMultiLineString({ type: 'MultiLineString', coordinates: [[[0, 0], [1, 1]]] }));
+		assert.ok(
+			isMultiLineString({
+				type: 'MultiLineString',
+				coordinates: [
+					[
+						[0, 0],
+						[1, 1],
+					],
+				],
+			}),
+		);
 		assert.ok(isMultiLineString(multilinestring));
 	});
 	test('rejects other geometry types', () => {
@@ -38,6 +76,16 @@ describe('isMultiLineString', () => {
 
 describe('isStrictMultiLineString', () => {
 	test('rejects out-of-range coordinates', () => {
-		assert.ok(!isStrictMultiLineString({ type: 'MultiLineString', coordinates: [[[-181, 0], [0, 0]]] }));
+		assert.ok(
+			!isStrictMultiLineString({
+				type: 'MultiLineString',
+				coordinates: [
+					[
+						[-181, 0],
+						[0, 0],
+					],
+				],
+			}),
+		);
 	});
 });

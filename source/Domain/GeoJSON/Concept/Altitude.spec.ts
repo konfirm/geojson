@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
+import type { Improbability } from '../../../../test/helper/spec';
 import * as Export from './Altitude';
 
 const { isAltitude, isStrictAltitude } = Export;
@@ -18,7 +19,7 @@ describe('Domain/GeoJSON/Concept/Altitude', () => {
 				${-6_378_137}
 				${20_180_000}
 				${20_180_000.1}
-			`(({ input }: any) => {
+			`(({ input }: Improbability) => {
 				assert.ok(isAltitude(input), `${input} is valid altitude`);
 			});
 		});
@@ -33,7 +34,7 @@ describe('Domain/GeoJSON/Concept/Altitude', () => {
 				${'1234'}
 				${false}
 				${true}
-			`(({ input }: any) => {
+			`(({ input }: Improbability) => {
 				assert.ok(!isAltitude(input), `${input} is not valid altitude`);
 			});
 		});
@@ -49,8 +50,11 @@ describe('Domain/GeoJSON/Concept/Altitude', () => {
 				${1_234_567}
 				${-6_371_008.7714}
 				${20_180_000}
-			`(({ input }: any) => {
-				assert.ok(isStrictAltitude(input), `${input} is valid strict altitude`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					isStrictAltitude(input),
+					`${input} is valid strict altitude`,
+				);
 			});
 		});
 
@@ -68,8 +72,11 @@ describe('Domain/GeoJSON/Concept/Altitude', () => {
 				${'1234'}
 				${false}
 				${true}
-			`(({ input }: any) => {
-				assert.ok(!isStrictAltitude(input), `${input} is not valid strict altitude`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isStrictAltitude(input),
+					`${input} is not valid strict altitude`,
+				);
 			});
 		});
 	});

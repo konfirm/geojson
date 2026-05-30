@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
-import { explain } from '../../../test/helper/spec';
+import { explain, type Improbability } from '../../../test/helper/spec';
 import {
-	getDistanceOfPointToPoint,
-	getDistanceOfPointToLine,
-	getDistanceOfLineToLine,
 	getClosestPointOnLineByPoint,
+	getDistanceOfLineToLine,
+	getDistanceOfPointToLine,
+	getDistanceOfPointToPoint,
 	isLinesCrossing,
-	isPointOnLine,
 	isPointInRing,
+	isPointOnLine,
 } from './Calculate';
 
 describe('Domain/Utility/Calculate', () => {
@@ -30,11 +30,11 @@ describe('Domain/Utility/Calculate', () => {
 				${[-180, -90]}                            | ${[180, 90]}                              | 44755156.2689204       | 20015114.352186374           | 20003931.4586233
 				${[-180, 90]}                             | ${[180, -90]}                             | 44755156.2689204       | 20015114.352186374           | 20003931.4586233
 				${[-180, 0]}                              | ${[180, 0]}                               | 40030228.70437275      |        1.5604470998469443e-9 | 20003931.4586233
-			`(({ a, b, ...calc }: any) => {
+			`(({ a, b, ...calc }: Improbability) => {
 				for (const key of Object.keys(calc)) {
 					const value = Number(calc[key]);
 					assert.strictEqual(
-						getDistanceOfPointToPoint(a, b, key as any),
+						getDistanceOfPointToPoint(a, b, key as Improbability),
 						value,
 						`${key} distance from ${explain(a)} to ${explain(b)} is ${value}`,
 					);
@@ -43,19 +43,30 @@ describe('Domain/Utility/Calculate', () => {
 		});
 
 		test('accepts a custom function', () => {
-			assert.strictEqual(getDistanceOfPointToPoint([0, 0], [0, 0], () => Math.PI), Math.PI);
+			assert.strictEqual(
+				getDistanceOfPointToPoint([0, 0], [0, 0], () => Math.PI),
+				Math.PI,
+			);
 		});
 
 		test('throws for unknown formula', () => {
 			assert.throws(
-				() => getDistanceOfPointToPoint([0, 0], [1, 1], <any>'unknown'),
+				() =>
+					getDistanceOfPointToPoint(
+						[0, 0],
+						[1, 1],
+						<Improbability>'unknown',
+					),
 				/Not a PointToPoint calculation function unknown/,
 			);
 		});
 	});
 
 	describe('getDistanceOfPointToLine', () => {
-		const line = [[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]];
+		const line = [
+			[5.911760330200195, 51.97496770044958],
+			[5.900301933288574, 51.97938231105512],
+		];
 
 		test('known point-to-line distances across formulas', () => {
 			each`
@@ -71,11 +82,15 @@ describe('Domain/Utility/Calculate', () => {
 				${[5, 1]}                                  | ${[[0, 0], [9, 0]]} | 111195.07973436874    | 111195.07973436874    | 110574.38855795695
 				${[7, 1]}                                  | ${[[0, 0], [9, 0]]} | 111195.07973436874    | 111195.07973436874    | 110574.38855795695
 				${[5.909668207168579, 51.979065108032444]} | ${line}             |    341.51430750144857 |    327.53158580286527 |    327.7879564857677
-			`(({ point, line, ...calc }: any) => {
+			`(({ point, line, ...calc }: Improbability) => {
 				for (const key of Object.keys(calc)) {
 					const value = Number(calc[key]);
 					assert.strictEqual(
-						getDistanceOfPointToLine(point, line, key as any),
+						getDistanceOfPointToLine(
+							point,
+							line,
+							key as Improbability,
+						),
 						value,
 						`${key} distance from ${explain(point)} to ${explain(line)} is ${value}`,
 					);
@@ -84,12 +99,30 @@ describe('Domain/Utility/Calculate', () => {
 		});
 
 		test('accepts a custom function', () => {
-			assert.strictEqual(getDistanceOfPointToLine([0, 0], [[0, 0], [1, 1]], () => Math.PI), Math.PI);
+			assert.strictEqual(
+				getDistanceOfPointToLine(
+					[0, 0],
+					[
+						[0, 0],
+						[1, 1],
+					],
+					() => Math.PI,
+				),
+				Math.PI,
+			);
 		});
 
 		test('throws for unknown formula', () => {
 			assert.throws(
-				() => getDistanceOfPointToLine([0, 0], [[0, 0], [1, 1]], <any>'unknown'),
+				() =>
+					getDistanceOfPointToLine(
+						[0, 0],
+						[
+							[0, 0],
+							[1, 1],
+						],
+						<Improbability>'unknown',
+					),
 				/Not a PointToPoint calculation function unknown/,
 			);
 		});
@@ -107,11 +140,11 @@ describe('Domain/Utility/Calculate', () => {
 				${[[2, 2], [4, 2]]}  | ${[[1, 1], [5, 5]]}  |      0             |      0             |      0
 				${[[0, 0], [2, 0]]}  | ${[[1, 1], [1, 3]]}  | 111195.07973436874 | 111195.07973436874 | 110574.38855795695
 				${[[0, 0], [0, 5]]}  | ${[[3, 3], [9, 3]]}  | 333585.23920310626 | 333127.967966738   | 333503.7471426487
-			`(({ a, b, ...calc }: any) => {
+			`(({ a, b, ...calc }: Improbability) => {
 				for (const key of Object.keys(calc)) {
 					const value = Number(calc[key]);
 					assert.strictEqual(
-						getDistanceOfLineToLine(a, b, key as any),
+						getDistanceOfLineToLine(a, b, key as Improbability),
 						value,
 						`${key} distance from ${explain(a)} to ${explain(b)} is ${value}`,
 					);
@@ -120,12 +153,36 @@ describe('Domain/Utility/Calculate', () => {
 		});
 
 		test('accepts a custom function', () => {
-			assert.strictEqual(getDistanceOfLineToLine([[0, 0], [1, 1]], [[0, 0], [1, 1]], () => Math.PI), Math.PI);
+			assert.strictEqual(
+				getDistanceOfLineToLine(
+					[
+						[0, 0],
+						[1, 1],
+					],
+					[
+						[0, 0],
+						[1, 1],
+					],
+					() => Math.PI,
+				),
+				Math.PI,
+			);
 		});
 
 		test('throws for unknown formula', () => {
 			assert.throws(
-				() => getDistanceOfLineToLine([[0, 0], [0, 1]], [[1, 0], [1, 1]], <any>'unknown'),
+				() =>
+					getDistanceOfLineToLine(
+						[
+							[0, 0],
+							[0, 1],
+						],
+						[
+							[1, 0],
+							[1, 1],
+						],
+						<Improbability>'unknown',
+					),
 				/Not a PointToPoint calculation function unknown/,
 			);
 		});
@@ -142,7 +199,7 @@ describe('Domain/Utility/Calculate', () => {
 				${[5, 2]}                                  | ${[[0, 0], [9, 0]]}                                                                 | ${[5, 0]}
 				${[5, 2]}                                  | ${[[0, 0], [0, 9]]}                                                                 | ${[0, 2]}
 				${[5.909668207168579, 51.979065108032444]} | ${[[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]]} | ${[5.9085640303798, 51.97619914837327]}
-			`(({ point, line, closest }: any) => {
+			`(({ point, line, closest }: Improbability) => {
 				assert.deepStrictEqual(
 					getClosestPointOnLineByPoint(point, line),
 					closest,
@@ -159,8 +216,11 @@ describe('Domain/Utility/Calculate', () => {
 				-----------------------|---
 				${[[0, 0], [2, 2]]}    | ${[[0, 1], [2, 1]]}
 				${[[0, 1], [9, 2]]}    | ${[[0, 2], [9, 1]]}
-			`(({ a, b }: any) => {
-				assert.ok(isLinesCrossing(a, b), `${explain(a)} crosses ${explain(b)}`);
+			`(({ a, b }: Improbability) => {
+				assert.ok(
+					isLinesCrossing(a, b),
+					`${explain(a)} crosses ${explain(b)}`,
+				);
 			});
 		});
 
@@ -170,8 +230,11 @@ describe('Domain/Utility/Calculate', () => {
 				-----------------------|---
 				${[[0, 1], [9, 2]]}    | ${[[0, 2], [9, 3]]}
 				${[[0, 1], [1000, 2]]} | ${[[0, 2], [1000, 3]]}
-			`(({ a, b }: any) => {
-				assert.ok(!isLinesCrossing(a, b), `${explain(a)} does not cross ${explain(b)}`);
+			`(({ a, b }: Improbability) => {
+				assert.ok(
+					!isLinesCrossing(a, b),
+					`${explain(a)} does not cross ${explain(b)}`,
+				);
 			});
 		});
 	});
@@ -183,8 +246,11 @@ describe('Domain/Utility/Calculate', () => {
 				------------------------------------------|---
 				${[1, 1]}                                 | ${[[0, 0], [3, 3]]}
 				${[5.906031131744385, 51.97717500575235]} | ${[[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]]}
-			`(({ point, line }: any) => {
-				assert.ok(isPointOnLine(point, line), `${explain(point)} is on ${explain(line)}`);
+			`(({ point, line }: Improbability) => {
+				assert.ok(
+					isPointOnLine(point, line),
+					`${explain(point)} is on ${explain(line)}`,
+				);
 			});
 		});
 
@@ -197,8 +263,11 @@ describe('Domain/Utility/Calculate', () => {
 				${[5, 2]}                                 | ${[[0, 0], [9, 0]]}
 				${[5, 2]}                                 | ${[[0, 0], [0, 9]]}
 				${[5.909668207168579, 51.979065108032444]}| ${[[5.911760330200195, 51.97496770044958], [5.900301933288574, 51.97938231105512]]}
-			`(({ point, line }: any) => {
-				assert.ok(!isPointOnLine(point, line), `${explain(point)} is not on ${explain(line)}`);
+			`(({ point, line }: Improbability) => {
+				assert.ok(
+					!isPointOnLine(point, line),
+					`${explain(point)} is not on ${explain(line)}`,
+				);
 			});
 		});
 	});
@@ -212,8 +281,11 @@ describe('Domain/Utility/Calculate', () => {
 				${[2, 2]} | ${[[0, 0], [0, 2], [2, 2], [2, 0], [0, 0]]}
 				${[1, 1]} | ${[[0, 0], [0, 2], [2, 2], [2, 0], [0, 0]]}
 				${[1, 1]} | ${[[1, 0], [0, 1], [1, 2], [2, 1], [1, 0]]}
-			`(({ point, ring }: any) => {
-				assert.ok(isPointInRing(point, ring), `${explain(point)} is inside ${explain(ring)}`);
+			`(({ point, ring }: Improbability) => {
+				assert.ok(
+					isPointInRing(point, ring),
+					`${explain(point)} is inside ${explain(ring)}`,
+				);
 			});
 		});
 
@@ -225,8 +297,11 @@ describe('Domain/Utility/Calculate', () => {
 				${[1, 3]} | ${[[0, 0], [0, 2], [2, 2], [2, 0], [0, 0]]}
 				${[0, 0]} | ${[[1, 0], [0, 1], [1, 2], [2, 1], [1, 0]]}
 				${[2, 2]} | ${[[1, 0], [0, 1], [1, 2], [2, 1], [1, 0]]}
-			`(({ point, ring }: any) => {
-				assert.ok(!isPointInRing(point, ring), `${explain(point)} is not inside ${explain(ring)}`);
+			`(({ point, ring }: Improbability) => {
+				assert.ok(
+					!isPointInRing(point, ring),
+					`${explain(point)} is not inside ${explain(ring)}`,
+				);
 			});
 		});
 	});
