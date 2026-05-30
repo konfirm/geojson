@@ -1,7 +1,7 @@
 {
 	"name": "@konfirm/geojson",
 	"version": "1.0.0",
-	"description": "GeoJSON implementation",
+	"description": "TypeScript-first GeoJSON validation, intersection, and geodesic distance — RFC 7946 compliant",
 	"main": "dist/main.js",
 	"module": "dist/main.mjs",
 	"types": "dist/main.d.ts",
@@ -35,9 +35,26 @@
 		"prepublish": "npm run build",
 		"prepare": "husky || true"
 	},
-	"keywords": [
-		"geojson"
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
 	],
+	"keywords": [
+		"geojson",
+		"gis",
+		"rfc7946",
+		"typescript",
+		"validation",
+		"geodesy",
+		"intersection",
+		"distance",
+		"haversine",
+		"vincenty",
+		"guard",
+		"geometry"
+	],
+	"sideEffects": false,
 	"author": "Rogier Spieker <rogier+npm@konfirm.eu>",
 	"license": "MIT",
 	"devDependencies": {
