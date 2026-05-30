@@ -2,20 +2,62 @@ name: Release
 
 on:
   push:
-    tags:
-      - "**"
+    branches: [main, release]
+    paths-ignore: ["**.md"]
 
 jobs:
-  package:
+  release:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
         with:
-          node-version: 16
-          registry-url: https://registry.npmjs.org/
-      - run: npm install
-      - run: npm run test:pretty
-      - run: npm publish --access public
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run test
+
+      - run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Beta release (main)
+        if: "github.ref_name == 'main' && !startsWith(github.event.head_commit.message, 'chore: release')"
+        run: |
+          npx release-it --preRelease=beta --ci
+          npm publish --provenance --tag beta
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync develop after beta release
+        if: "github.ref_name == 'main' && !startsWith(github.event.head_commit.message, 'chore: release')"
+        run: git push origin HEAD:develop 2>/dev/null || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stable release (release branch)
+        if: github.ref_name == 'release'
+        run: |
+          npm run release
+          npm publish --provenance
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync main and develop after stable release
+        if: github.ref_name == 'release'
+        run: |
+          git push origin HEAD:main
+          git push origin HEAD:develop 2>/dev/null || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

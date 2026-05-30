@@ -2,15 +2,14 @@
 	"name": "@konfirm/geojson",
 	"version": "1.0.0",
 	"description": "GeoJSON implementation",
-	"iife": "dist/geojson.js",
-	"main": "dist/geojson.cjs.js",
-	"module": "dist/geojson.es.js",
-	"types": "dist/geojson.d.ts",
+	"main": "dist/main.js",
+	"module": "dist/main.mjs",
+	"types": "dist/main.d.ts",
 	"exports": {
 		".": {
-			"types": "./source/main.ts",
-			"import": "./dist/geojson.es.js",
-			"require": "./dist/geojson.cjs.js"
+			"types": "./dist/main.d.ts",
+			"import": "./dist/main.mjs",
+			"require": "./dist/main.js"
 		}
 	},
 	"repository": {
@@ -21,19 +20,20 @@
 		"url": "https://github.com/konfirm/geojson/issues"
 	},
 	"scripts": {
-		"test": "run-script-os",
-		"test:nix": "ts-node node_modules/tape/bin/tape 'test/**/*.ts'",
-		"test:win32": "ts-node node_modules/tape/bin/tape test/**/*.ts",
-		"test:coverage": "run-script-os",
-		"test:coverage:nix": "nyc --reporter=html --require ts-node/register tape 'test/**/*.ts' | tap-arc",
-		"test:coverage:win32": "nyc --reporter=html --require ts-node/register tape test/**/*.ts | tap-arc",
-		"test:pretty": "run-script-os",
-		"test:pretty:nix": "nyc --require ts-node/register tape 'test/**/*.ts' | tap-arc",
-		"test:pretty:win32": "nyc --require ts-node/register tape test/**/*.ts | tap-arc",
-		"prebuild": "tsc --declarationDir temp --declaration true --emitDeclarationOnly true",
-		"build": "rollup -c rollup.config.mjs",
-		"postbuild": "rm -rf temp",
-		"prepublish": "npm run build"
+		"test": "npm run test:unit && npm run test:integration",
+		"test:unit": "node --require ./test.register.cjs --test 'source/**/*.spec.ts'",
+		"test:integration": "node --require ./test.register.cjs --test 'test/**/*.spec.ts'",
+		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
+		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r html -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
+		"build": "tsup",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write",
+		"release": "release-it --ci",
+		"release:beta": "release-it --preRelease=beta --ci",
+		"prepublish": "npm run build",
+		"prepare": "husky || true"
 	},
 	"keywords": [
 		"geojson"
@@ -41,21 +41,42 @@
 	"author": "Rogier Spieker <rogier+npm@konfirm.eu>",
 	"license": "MIT",
 	"devDependencies": {
-		"@rollup/plugin-commonjs": "^24.0.1",
-		"@rollup/plugin-node-resolve": "^15.0.1",
-		"@rollup/plugin-terser": "^0.4.0",
-		"@rollup/plugin-typescript": "^11.0.0",
-		"@types/tape": "^4.13.2",
-		"nyc": "^15.1.0",
-		"rollup": "^3.14.0",
-		"rollup-plugin-dts": "^5.1.1",
-		"run-script-os": "^1.1.6",
-		"tap-arc": "^0.3.5",
-		"tape": "^5.6.3",
+		"@biomejs/biome": "^2.4.16",
+		"@commitlint/config-conventional": "^20.5.3",
+		"@release-it/conventional-changelog": "^10.0.6",
+		"@types/node": "^22.0.0",
+		"commitlint": "^20.5.3",
+		"husky": "^9.1.7",
+		"one-double-zero": "^1.1.1",
+		"release-it": "^19.2.4",
 		"template-literal-each": "^3.0.0",
 		"ts-node": "^10.9.1",
 		"tslib": "^2.5.0",
-		"typescript": "^4.9.5"
+		"tsup": "^8.5.1",
+		"typescript": "^6.0.0"
+	},
+	"release-it": {
+		"git": {
+			"commitMessage": "chore: release v${version}",
+			"tagName": "v${version}",
+			"requireCleanWorkingDir": true,
+			"push": true,
+			"pushTags": true
+		},
+		"github": {
+			"release": true,
+			"tokenRef": "GITHUB_TOKEN"
+		},
+		"npm": {
+			"publish": false,
+			"skipChecks": true
+		},
+		"plugins": {
+			"@release-it/conventional-changelog": {
+				"preset": "conventionalcommits",
+				"infile": "CHANGELOG.md"
+			}
+		}
 	},
 	"dependencies": {
 		"@konfirm/guard": "^2.0.0"

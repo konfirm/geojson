@@ -1,20 +1,55 @@
 // intersect and distance functions
-export { intersect } from './Domain/Utility/Intersect';
-export { distance } from './Domain/Utility/Distance';
-
-// SimpleGeometryIterator
-export { SimpleGeometryIterator } from './Domain/Iterator/SimpleGeometry';
 
 // the individual GeoJSON types and type guards
-export { Position, isPosition, isStrictPosition } from './Domain/GeoJSON/Concept/Position';
-export { Point, isPoint, isStrictPoint } from './Domain/GeoJSON/Geometry/Point';
-export { MultiPoint, isMultiPoint, isStrictMultiPoint } from './Domain/GeoJSON/Geometry/MultiPoint';
-export { LineString, isLineString, isStrictLineString } from './Domain/GeoJSON/Geometry/LineString';
-export { MultiLineString, isMultiLineString, isStrictMultiLineString } from './Domain/GeoJSON/Geometry/MultiLineString';
-export { Polygon, isPolygon, isStrictPolygon } from './Domain/GeoJSON/Geometry/Polygon';
-export { MultiPolygon, isMultiPolygon, isStrictMultiPolygon } from './Domain/GeoJSON/Geometry/MultiPolygon';
-export { GeometryCollection, isGeometryCollection, isStrictGeometryCollection } from './Domain/GeoJSON/GeometryCollection';
-export { Geometry, isGeometry, isStrictGeometry } from './Domain/GeoJSON/Geometry';
+export {
+	isPosition,
+	isStrictPosition,
+	Position,
+} from './Domain/GeoJSON/Concept/Position';
 export { Feature, isFeature, isStrictFeature } from './Domain/GeoJSON/Feature';
-export { FeatureCollection, isFeatureCollection, isStrictFeatureCollection } from './Domain/GeoJSON/FeatureCollection';
+export {
+	FeatureCollection,
+	isFeatureCollection,
+	isStrictFeatureCollection,
+} from './Domain/GeoJSON/FeatureCollection';
 export { GeoJSON, isGeoJSON, isStrictGeoJSON } from './Domain/GeoJSON/GeoJSON';
+export {
+	Geometry,
+	isGeometry,
+	isStrictGeometry,
+} from './Domain/GeoJSON/Geometry';
+export {
+	isLineString,
+	isStrictLineString,
+	LineString,
+} from './Domain/GeoJSON/Geometry/LineString';
+export {
+	isMultiLineString,
+	isStrictMultiLineString,
+	MultiLineString,
+} from './Domain/GeoJSON/Geometry/MultiLineString';
+export {
+	isMultiPoint,
+	isStrictMultiPoint,
+	MultiPoint,
+} from './Domain/GeoJSON/Geometry/MultiPoint';
+export {
+	isMultiPolygon,
+	isStrictMultiPolygon,
+	MultiPolygon,
+} from './Domain/GeoJSON/Geometry/MultiPolygon';
+export { isPoint, isStrictPoint, Point } from './Domain/GeoJSON/Geometry/Point';
+export {
+	isPolygon,
+	isStrictPolygon,
+	Polygon,
+} from './Domain/GeoJSON/Geometry/Polygon';
+export {
+	GeometryCollection,
+	isGeometryCollection,
+	isStrictGeometryCollection,
+} from './Domain/GeoJSON/GeometryCollection';
+// SimpleGeometryIterator
+export { SimpleGeometryIterator } from './Domain/Iterator/SimpleGeometry';
+export { distance } from './Domain/Utility/Distance';
+export { intersect } from './Domain/Utility/Intersect';

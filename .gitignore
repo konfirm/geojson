@@ -1,6 +1,4 @@
 dist
 node_modules
-.nyc_output
-package-lock.json
-coverage
 .DS_Store
+.odz_output

@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"rootDir": ".",
+		"declaration": false,
+		"declarationMap": false
+	},
+	"ts-node": {
+		"transpileOnly": true
+	},
+	"include": ["source/**/*.ts", "test/**/*.ts"],
+	"exclude": ["node_modules", "dist"]
+}

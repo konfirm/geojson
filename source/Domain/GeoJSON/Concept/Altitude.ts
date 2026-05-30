@@ -1,9 +1,12 @@
-import { EARTH_RADIUS, GPS_SATELLITE_ORBIT } from "../../Constants";
-import { isNumberBetween, isNumberValue } from "../../Guards/Number";
+import { EARTH_RADIUS, GPS_SATELLITE_ORBIT } from '../../Constants';
+import { isNumberBetween, isNumberValue } from '../../Guards/Number';
 
 export type Altitude = number;
-export function isAltitude(value: any): value is Altitude {
+export function isAltitude(value: unknown): value is Altitude {
 	return isNumberValue(value);
 }
 
-export const isStrictAltitude = isNumberBetween<Altitude>(-EARTH_RADIUS, GPS_SATELLITE_ORBIT);
+export const isStrictAltitude = isNumberBetween<Altitude>(
+	-EARTH_RADIUS,
+	GPS_SATELLITE_ORBIT,
+);
