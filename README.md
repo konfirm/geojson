@@ -33,7 +33,7 @@ The `isStrict*` variants of the type guards also validate the following:
  - `Latitude` is a number in the range (inclusive) `-90..90`
  - `Altitude` is a number in the range (inclusive) `-6371008.7714..20180000` (Earth center(-ish) up to the GPS satelite distance)
  - `Polygon` "LinearRing" are closed (first and last `Position` are identical)
- - `Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))
+ - ~~`Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))~~ _(not yet enforced — planned for v2)_
 
 
 | type               | guard                  | strict guard                 | description                                                                                                        |

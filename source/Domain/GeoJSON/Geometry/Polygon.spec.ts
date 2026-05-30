@@ -139,4 +139,15 @@ describe('isStrictPolygon', () => {
 	test('accepts a real-world polygon with correct winding', () => {
 		assert.ok(isStrictPolygon(polygon));
 	});
+	test('does not yet enforce winding direction (Phase 2)', () => {
+		// CW exterior ring — should be rejected by a strict polygon guard per RFC 7946,
+		// but isStrictPolygonCoordinates uses isExteriorRing (= isLinearRing, no winding check)
+		// rather than isStrictExteriorRing. This passes today; it should fail after Phase 2.
+		assert.ok(
+			isStrictPolygon({
+				type: 'Polygon',
+				coordinates: [[[1, 0], [1, 1], [0, 1], [0, 0.5], [1, 0]]],
+			}),
+		);
+	});
 });
