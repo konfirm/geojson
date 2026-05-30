@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { distance } from '../../../source/Domain/Utility/Distance';
-import { explain } from '../../helper/spec';
+import { explain, type Improbability } from '../../helper/spec';
 import { shapes } from '../../data/Distance';
 
 describe('Distance — all geometry type combinations', () => {

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
+import type { Improbability } from '../../../test/helper/spec';
 import { isClockwiseWinding, isCounterClockwiseWinding } from './Winding';
 
 describe('Domain/Utility/Winding', () => {
@@ -17,8 +18,11 @@ describe('Domain/Utility/Winding', () => {
 				${[[0, 0]]}
 				${[[0, 0], [0, 1]]}
 				${[[1, 1], [0, 1], [1, 0], [0, 0]]}
-			`(({ position }: any) => {
-				assert.ok(isClockwiseWinding(position), `isClockwiseWinding ${JSON.stringify(position)}`);
+			`(({ position }: Improbability) => {
+				assert.ok(
+					isClockwiseWinding(position),
+					`isClockwiseWinding ${JSON.stringify(position)}`,
+				);
 			});
 		});
 
@@ -29,8 +33,11 @@ describe('Domain/Utility/Winding', () => {
 				${[[0, 0], [0, 1], [1, 1]]}
 				${[[0, 0], [0, 1], [1, 1], [1, 0]]}
 				${[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]}
-			`(({ position }: any) => {
-				assert.ok(!isClockwiseWinding(position), `not isClockwiseWinding ${JSON.stringify(position)}`);
+			`(({ position }: Improbability) => {
+				assert.ok(
+					!isClockwiseWinding(position),
+					`not isClockwiseWinding ${JSON.stringify(position)}`,
+				);
 			});
 		});
 	});
@@ -48,8 +55,11 @@ describe('Domain/Utility/Winding', () => {
 				${[[0, 0], [0, 1], [1, 1], [1, 0]]}
 				${[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]}
 				${[[1, 1], [0, 1], [1, 0], [0, 0]]}
-			`(({ position }: any) => {
-				assert.ok(isCounterClockwiseWinding(position), `isCounterClockwiseWinding ${JSON.stringify(position)}`);
+			`(({ position }: Improbability) => {
+				assert.ok(
+					isCounterClockwiseWinding(position),
+					`isCounterClockwiseWinding ${JSON.stringify(position)}`,
+				);
 			});
 		});
 
@@ -60,8 +70,11 @@ describe('Domain/Utility/Winding', () => {
 				${[[0, 0], [1, 0], [1, 1]]}
 				${[[0, 0], [1, 0], [1, 1], [0, 1]]}
 				${[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]}
-			`(({ position }: any) => {
-				assert.ok(!isCounterClockwiseWinding(position), `not isCounterClockwiseWinding ${JSON.stringify(position)}`);
+			`(({ position }: Improbability) => {
+				assert.ok(
+					!isCounterClockwiseWinding(position),
+					`not isCounterClockwiseWinding ${JSON.stringify(position)}`,
+				);
 			});
 		});
 	});

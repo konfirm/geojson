@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { geometrycollection, feature, point } from '../../../test/data/Shapes';
-import { isGeometryCollection, isStrictGeometryCollection } from './GeometryCollection';
+import { feature, geometrycollection, point } from '../../../test/data/Shapes';
+import {
+	isGeometryCollection,
+	isStrictGeometryCollection,
+} from './GeometryCollection';
 
 describe('isGeometryCollection', () => {
 	test('accepts a GeometryCollection', () => {
-		assert.ok(isGeometryCollection({ type: 'GeometryCollection', geometries: [] }));
+		assert.ok(
+			isGeometryCollection({
+				type: 'GeometryCollection',
+				geometries: [],
+			}),
+		);
 		assert.ok(isGeometryCollection(geometrycollection));
 	});
 	test('rejects non-GeometryCollection shapes', () => {
@@ -22,9 +30,11 @@ describe('isStrictGeometryCollection', () => {
 		assert.ok(isStrictGeometryCollection(geometrycollection));
 	});
 	test('rejects a GeometryCollection with out-of-range geometry', () => {
-		assert.ok(!isStrictGeometryCollection({
-			type: 'GeometryCollection',
-			geometries: [{ type: 'Point', coordinates: [-181, 0] }],
-		}));
+		assert.ok(
+			!isStrictGeometryCollection({
+				type: 'GeometryCollection',
+				geometries: [{ type: 'Point', coordinates: [-181, 0] }],
+			}),
+		);
 	});
 });

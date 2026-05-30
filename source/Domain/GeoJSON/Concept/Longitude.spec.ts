@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
+import type { Improbability } from '../../../../test/helper/spec';
 import * as Export from './Longitude';
 
 const { isLongitude, isStrictLongitude } = Export;
@@ -18,7 +19,7 @@ describe('Domain/GeoJSON/Concept/Longitude', () => {
 				${-180.1}
 				${180}
 				${180.1}
-			`(({ input }: any) => {
+			`(({ input }: Improbability) => {
 				assert.ok(isLongitude(input), `${input} is valid longitude`);
 			});
 		});
@@ -33,8 +34,11 @@ describe('Domain/GeoJSON/Concept/Longitude', () => {
 				${'1234'}
 				${false}
 				${true}
-			`(({ input }: any) => {
-				assert.ok(!isLongitude(input), `${input} is not valid longitude`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isLongitude(input),
+					`${input} is not valid longitude`,
+				);
 			});
 		});
 	});
@@ -49,8 +53,11 @@ describe('Domain/GeoJSON/Concept/Longitude', () => {
 				${5.8987296}
 				${-180}
 				${180}
-			`(({ input }: any) => {
-				assert.ok(isStrictLongitude(input), `${input} is valid strict longitude`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					isStrictLongitude(input),
+					`${input} is valid strict longitude`,
+				);
 			});
 		});
 
@@ -66,8 +73,11 @@ describe('Domain/GeoJSON/Concept/Longitude', () => {
 				${'1234'}
 				${false}
 				${true}
-			`(({ input }: any) => {
-				assert.ok(!isStrictLongitude(input), `${input} is not valid strict longitude`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isStrictLongitude(input),
+					`${input} is not valid strict longitude`,
+				);
 			});
 		});
 	});

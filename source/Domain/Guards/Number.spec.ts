@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
-import { isNumberValue, isNumberBetween } from './Number';
+import type { Improbability } from '../../../test/helper/spec';
+import { isNumberBetween, isNumberValue } from './Number';
 
 describe('Domain/Guards/Number', () => {
 	describe('isNumberValue', () => {
@@ -16,7 +17,7 @@ describe('Domain/Guards/Number', () => {
 				${Number.MIN_VALUE}
 				${Math.PI}
 				${-Math.PI}
-			`(({ input }: any) => {
+			`(({ input }: Improbability) => {
 				assert.ok(isNumberValue(input), `${input} is a number value`);
 			});
 		});
@@ -29,8 +30,11 @@ describe('Domain/Guards/Number', () => {
 				${-Infinity}
 				${NaN}
 				${'123'}
-			`(({ input }: any) => {
-				assert.ok(!isNumberValue(input), `${input} is not a number value`);
+			`(({ input }: Improbability) => {
+				assert.ok(
+					!isNumberValue(input),
+					`${input} is not a number value`,
+				);
 			});
 		});
 	});
@@ -44,8 +48,11 @@ describe('Domain/Guards/Number', () => {
 				${0}       | ${0}   | ${2}
 				${Math.PI} | ${0}   | ${undefined}
 				${0}       | ${-10} | ${10}
-			`(({ input, min, max }: any) => {
-				assert.ok(isNumberBetween(min, max)(input), `${input} is between ${min} and ${max}`);
+			`(({ input, min, max }: Improbability) => {
+				assert.ok(
+					isNumberBetween(min, max)(input),
+					`${input} is between ${min} and ${max}`,
+				);
 			});
 		});
 
@@ -55,8 +62,11 @@ describe('Domain/Guards/Number', () => {
 				------------|------|---
 				${-1}       | ${0} | ${2}
 				${Infinity} | ${0} | ${undefined}
-			`(({ input, min, max }: any) => {
-				assert.ok(!isNumberBetween(min, max)(input), `${input} is not between ${min} and ${max}`);
+			`(({ input, min, max }: Improbability) => {
+				assert.ok(
+					!isNumberBetween(min, max)(input),
+					`${input} is not between ${min} and ${max}`,
+				);
 			});
 		});
 	});

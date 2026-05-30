@@ -5,7 +5,13 @@ import { isFeature, isStrictFeature } from './Feature';
 
 describe('isFeature', () => {
 	test('accepts a Feature with geometry', () => {
-		assert.ok(isFeature({ type: 'Feature', properties: null, geometry: { type: 'Point', coordinates: [0, 0] } }));
+		assert.ok(
+			isFeature({
+				type: 'Feature',
+				properties: null,
+				geometry: { type: 'Point', coordinates: [0, 0] },
+			}),
+		);
 		assert.ok(isFeature(feature));
 	});
 
@@ -24,10 +30,12 @@ describe('isStrictFeature', () => {
 		assert.ok(isStrictFeature(feature));
 	});
 	test('rejects a Feature with out-of-range geometry', () => {
-		assert.ok(!isStrictFeature({
-			type: 'Feature',
-			properties: null,
-			geometry: { type: 'Point', coordinates: [-181, 0] },
-		}));
+		assert.ok(
+			!isStrictFeature({
+				type: 'Feature',
+				properties: null,
+				geometry: { type: 'Point', coordinates: [-181, 0] },
+			}),
+		);
 	});
 });
