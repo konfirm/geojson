@@ -33,7 +33,7 @@ The `isStrict*` variants of the type guards also validate the following:
  - `Latitude` is a number in the range (inclusive) `-90..90`
  - `Altitude` is a number in the range (inclusive) `-6371008.7714..20180000` (Earth center(-ish) up to the GPS satelite distance)
  - `Polygon` "LinearRing" are closed (first and last `Position` are identical)
- - `Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))
+ - ~~`Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))~~ _(not yet enforced — planned for v2)_
 
 
 | type               | guard                  | strict guard                 | description                                                                                                        |
@@ -107,7 +107,7 @@ import { distance, Feature } from '@konfirm/geojson';
     const a: Feature = {
         type: 'Feature',
         properties: {
-            name: 'Schiphol Airpoirt, Amsterdam',
+            name: 'Schiphol Airport, Amsterdam',
         },
         geometry: {
             type: 'Point',
@@ -125,15 +125,15 @@ import { distance, Feature } from '@konfirm/geojson';
         },
     };
 
-    console.log(distance(a, b));             // 8829424.604594177
-    console.log(distance(a, b, 'direct');    // 8829424.604594177 ('direct' is the default)
-    console.log(distance(a, b, 'haversine'); // 5847546.425707642
-    console.log(distance(a, b, 'vincenty');  // 5863355.371234315
+    console.log(distance(a, b));              // 8829424.604594177 ('cartesian' is the default)
+    console.log(distance(a, b, 'cartesian')); // 8829424.604594177
+    console.log(distance(a, b, 'haversine')); // 5847546.425707642
+    console.log(distance(a, b, 'vincenty'));  // 5863355.371234315
 ```
 
 ### SimpleGeometryIterator
 
-The SimpleGeometryIterator class is a convenience helper utility which yeilds all simple Geometric shapes (`Point`, `LineString`, `Polygon`) from any GeoJSON object. Using a SimpleGeometryIterator allows you to focus on just implementing logic for the simple Geometric shapes whilst supporting any compbination of GeoJSON objects as input.
+The SimpleGeometryIterator class is a convenience helper utility which yields all simple Geometric shapes (`Point`, `LineString`, `Polygon`) from any GeoJSON object. Using a SimpleGeometryIterator allows you to focus on just implementing logic for the simple Geometric shapes whilst supporting any combination of GeoJSON objects as input.
 
 | input type           | yields type(s)                     | description                                                                              |
 | -------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |

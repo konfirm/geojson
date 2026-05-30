@@ -1,4 +1,11 @@
 # Changelog
+
+## [1.0.1-beta.0](https://github.com/konfirm/geojson/compare/v1.0.0...v1.0.1-beta.0) (2026-05-30)
+
+### Performance Improvements
+
+* add a quick 'within box' check before the more expensive math ([e54d7c0](https://github.com/konfirm/geojson/commit/e54d7c0b36a4096c63c4d887f1d8a49bd25f15ff))
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
