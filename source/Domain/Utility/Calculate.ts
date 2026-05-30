@@ -5,6 +5,7 @@ import {
 	EARTH_RADIUS_MINOR,
 } from '../Constants';
 import type { Point } from '../GeoJSON/Geometry/Point';
+import { createBoxFromCoordinates, isWithinBox } from './Box';
 
 const D2R = Math.PI / 180;
 const π = Math.PI;
@@ -219,6 +220,10 @@ export function isPointInRing(
 	p: Point['coordinates'],
 	ring: Array<Point['coordinates']>,
 ): boolean {
+	if (!isWithinBox(p, createBoxFromCoordinates(ring))) {
+		return false;
+	}
+
 	const { length } = ring;
 	const odd = ring.reduce((odd, a, i) => {
 		const b = ring[(length + i - 1) % length];
