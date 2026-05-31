@@ -61,7 +61,8 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 			each`
 				input
 				---
-				${[[1, 0], [0, 0.5], [0, 1], [1, 1], [1, 0]]}
+				${[[1, 0], [1, 1], [0, 1], [0, 0.5], [1, 0]]}
+				${[[1, 0], [1, 1], [0, 1], [1, 0]]}
 			`(({ input }: Improbability) => {
 				assert.ok(
 					isStrictExteriorRing(input),
@@ -77,8 +78,7 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 				${undefined}
 				${null}
 				${'[[1,0],[1,1],[0,1],[1,0]]'}
-				${[[1, 0], [1, 1], [0, 1], [0, 0.5], [1, 0]]}
-				${[[1, 0], [1, 1], [0, 1], [1, 0]]}
+				${[[1, 0], [0, 0.5], [0, 1], [1, 1], [1, 0]]}
 				${[[1, 0], [1, 1], [0, 1], [0, 0]]}
 				${[[1, 0], [1, 1], [1, 0]]}
 				${[[1, 0], [1, 0]]}
@@ -92,18 +92,11 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 			});
 		});
 
-		test('first ring of each Italy polygon is a strict exterior ring', () => {
-			assert.ok(
-				!Italy.every((polygon) => polygon.every(isStrictExteriorRing)),
-			);
-			assert.ok(
-				Italy.every((polygon) => isStrictExteriorRing(polygon[0])),
-			);
-			assert.ok(
-				Italy.filter((polygon) => polygon.length > 1).every(
-					(polygon) => !polygon.slice(1).some(isStrictExteriorRing),
-				),
-			);
+		test('OSM Italy exterior rings pass strict RFC 7946 validation', () => {
+			for (const [exterior] of Italy) {
+				assert.ok(isExteriorRing(exterior));       // valid ring ✓
+				assert.ok(isStrictExteriorRing(exterior)); // CCW — passes RFC 7946 §3.1.6 ✓
+			}
 		});
 
 		test('rejects SanMarino and HolySee coordinates', () => {

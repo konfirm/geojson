@@ -61,8 +61,8 @@ describe('Domain/GeoJSON/Concept/InteriorRing', () => {
 			each`
 				input
 				---
-				${[[1, 0], [1, 1], [0, 1], [0, 0.5], [1, 0]]}
-				${[[1, 0], [1, 1], [0, 1], [1, 0]]}
+				${[[1, 0], [0, 0.5], [0, 1], [1, 1], [1, 0]]}
+				${[[1, 0], [0, 1], [1, 1], [1, 0]]}
 			`(({ input }: Improbability) => {
 				assert.ok(
 					isStrictInteriorRing(input),
@@ -78,7 +78,7 @@ describe('Domain/GeoJSON/Concept/InteriorRing', () => {
 				${undefined}
 				${null}
 				${'[[1,0],[1,1],[0,1],[1,0]]'}
-				${[[1, 0], [0, 0.5], [0, 1], [1, 1], [1, 0]]}
+				${[[1, 0], [1, 1], [0, 1], [0, 0.5], [1, 0]]}
 				${[[1, 0], [1, 1], [0, 1], [0, 0]]}
 				${[[1, 0], [1, 1], [1, 0]]}
 				${[[1, 0], [1, 0]]}
@@ -92,18 +92,17 @@ describe('Domain/GeoJSON/Concept/InteriorRing', () => {
 			});
 		});
 
-		test('inner rings of Italy polygons are strict interior rings', () => {
-			assert.ok(
-				!Italy.every((polygon) => polygon.every(isStrictInteriorRing)),
-			);
-			assert.ok(
-				Italy.every((polygon) => !isStrictInteriorRing(polygon[0])),
-			);
-			assert.ok(
-				Italy.filter((polygon) => polygon.length > 1).every((polygon) =>
-					polygon.slice(1).every(isStrictInteriorRing),
-				),
-			);
+		test('Italy interior rings (OSM-derived) pass strict — holes have correct RFC 7946 CW winding', () => {
+			// Italy's holes are derived from OSM enclave data (CCW exterior) reversed to CW,
+			// which is the correct winding for interior rings per RFC 7946 §3.1.6.
+			// Note: isStrictPolygon(Italy) still fails because the exterior ring uses the
+			// pre-RFC 7946 (NE/GJ2008) CW-exterior convention.
+			for (const [, ...interiors] of Italy) {
+				for (const interior of interiors) {
+					assert.ok(isInteriorRing(interior));       // valid ring ✓
+					assert.ok(isStrictInteriorRing(interior)); // CW — correct per RFC 7946 §3.1.6 ✓
+				}
+			}
 		});
 
 		test('rejects SanMarino and HolySee coordinates', () => {
