@@ -49,6 +49,22 @@ describe('Domain/Utility/Calculate', () => {
 			);
 		});
 
+		test('vincenty throws for near-antipodal points', () => {
+			// Wikipedia "Vincenty's formulae § Nearly antipodal points":
+			// (0°,0°)→(0.5°,179.7°) fails to converge; correct answer 19944127.421 m
+			each`
+				a         | b
+				----------|---
+				${[0, 0]} | ${[179.7, 0.5]}
+				${[0, 0]} | ${[179.9, 0.1]}
+			`(({ a, b }: Improbability) => {
+				assert.throws(
+					() => getDistanceOfPointToPoint(a, b, 'vincenty'),
+					/Vincenty formula failed to converge/,
+				);
+			});
+		});
+
 		test('throws for unknown formula', () => {
 			assert.throws(
 				() =>

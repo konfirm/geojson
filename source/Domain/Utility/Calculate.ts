@@ -103,12 +103,8 @@ const PointToPoint: {
 						C *
 							sinσ *
 							(cos2σₘ + C * cosσ * (-1 + 2 * cos2σₘ * cos2σₘ)));
-			// TODO: add tests
-			// const iterationCheck = antipodal ? Math.abs(λ) - π : Math.abs(λ);
-			// if (iterationCheck > π) throw new EvalError('λ > π');
 		} while (Math.abs(λ - λʹ) > 1e-12 && ++iterations < 1000); // TV: 'iterate until negligible change in λ' (≈0.006mm)
-		// TODO: add tests
-		// if (iterations >= 1000) throw new EvalError('Vincenty formula failed to converge');
+		if (iterations >= 1000) throw new EvalError('Vincenty formula failed to converge');
 
 		const uSq = cosSqα * EARTH_RADIUS_FACTOR;
 		const A =
