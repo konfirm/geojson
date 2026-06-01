@@ -17,6 +17,7 @@
  *   Prefix conventions: s = sin, c = cos, d = √(1 + e′² sin²β)
  *   Subscript 1/2 = point 1 / point 2; 12 = quantity at point 2 minus point 1
  */
+import type { Position } from '../../Domain/GeoJSON/Concept/Position';
 import { EARTH_FLATTENING, EARTH_RADIUS_MAJOR } from '../Constants';
 import { values } from './Common';
 import { squared } from './Numeric';
@@ -777,9 +778,6 @@ function inverseDistance(
 }
 
 // ── Public interface ───────────────────────────────────────────────────────
-export function karney(
-	[lon1, lat1]: [number, number],
-	[lon2, lat2]: [number, number],
-): number {
+export function karney([lon1, lat1]: Position, [lon2, lat2]: Position): number {
 	return inverseDistance(lat1, lon1, lat2, lon2);
 }
