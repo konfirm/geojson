@@ -99,7 +99,7 @@ describe('Domain/GeoJSON/Concept/InteriorRing', () => {
 			// pre-RFC 7946 (NE/GJ2008) CW-exterior convention.
 			for (const [, ...interiors] of Italy) {
 				for (const interior of interiors) {
-					assert.ok(isInteriorRing(interior));       // valid ring ✓
+					assert.ok(isInteriorRing(interior)); // valid ring ✓
 					assert.ok(isStrictInteriorRing(interior)); // CW — correct per RFC 7946 §3.1.6 ✓
 				}
 			}

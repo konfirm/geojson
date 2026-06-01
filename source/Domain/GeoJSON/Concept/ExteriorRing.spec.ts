@@ -94,7 +94,7 @@ describe('Domain/GeoJSON/Concept/ExteriorRing', () => {
 
 		test('OSM Italy exterior rings pass strict RFC 7946 validation', () => {
 			for (const [exterior] of Italy) {
-				assert.ok(isExteriorRing(exterior));       // valid ring ✓
+				assert.ok(isExteriorRing(exterior)); // valid ring ✓
 				assert.ok(isStrictExteriorRing(exterior)); // CCW — passes RFC 7946 §3.1.6 ✓
 			}
 		});

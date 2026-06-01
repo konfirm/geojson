@@ -143,7 +143,15 @@ describe('isStrictPolygon', () => {
 		assert.ok(
 			!isStrictPolygon({
 				type: 'Polygon',
-				coordinates: [[[1, 0], [0, 0.5], [0, 1], [1, 1], [1, 0]]],
+				coordinates: [
+					[
+						[1, 0],
+						[0, 0.5],
+						[0, 1],
+						[1, 1],
+						[1, 0],
+					],
+				],
 			}),
 		);
 	});
