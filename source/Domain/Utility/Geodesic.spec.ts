@@ -131,6 +131,27 @@ describe('Domain/Utility/Geodesic', () => {
 			});
 		});
 
+		// Symmetric-latitude near-antipodal — calp2 = 0 derivative branch
+		// For lat2 = −lat1 and lon_diff ≈ 179.9158°, the near-antipodal branch
+		// produces an initial azimuth with calp1 = 0, which propagates to calp2 = 0
+		// inside Lambda12. The window is only ~2 IEEE 754 doubles wide at this
+		// longitude precision, but it is reachable and exercises the derivative
+		// formula dlam12 = (−2·f1·dn1) / sbet1 on line 386.
+		test('symmetric-latitude near-antipodal geodesics (calp2=0 derivative)', () => {
+			each`
+				a           | b                        | s12
+				------------|--------------------------|---
+				${[0, 82]}  | ${[179.9157995, -82]}    | 20003277.04857425
+				${[0, 82]}  | ${[179.9158, -82]}       | 20003277.05634614
+			`(({ a, b, s12 }: Improbability) => {
+				assert.strictEqual(
+					karney(a, b),
+					Number(s12),
+					`karney(${explain(a)}, ${explain(b)}) = ${s12}`,
+				);
+			});
+		});
+
 		// Near-polar near-antipodal — Newton bisection fallback
 		// GeodTest.dat "random" category (lines 303142, 303569, 304495).
 		// These high-latitude pairs near lon_diff≈180° force the Newton step to

@@ -156,27 +156,30 @@ function astroid(x: number, y: number): number {
 	const p = squared(x);
 	const q = squared(y);
 	const r = (p + q - 1) / 6;
-	if (!(q === 0 && r <= 0)) {
-		const S = (p * q) / 4;
-		const r2 = squared(r);
-		const r3 = r * r2;
-		const disc = S * (S + 2 * r3);
-		let u = r;
-		if (disc >= 0) {
-			let T3 = S + r3;
-			T3 += T3 < 0 ? -Math.sqrt(disc) : Math.sqrt(disc);
-			const T = Math.cbrt(T3);
-			u += T + (T !== 0 ? r2 / T : 0);
-		} else {
-			const ang = Math.atan2(Math.sqrt(-disc), -(S + r3));
-			u += 2 * r * Math.cos(ang / 3);
-		}
-		const v = Math.sqrt(squared(u) + q);
-		const uv = u < 0 ? q / (v - u) : u + v;
-		const w = (uv - q) / (2 * v);
-		return uv / (Math.sqrt(uv + squared(w)) + w);
+	// Oblate ellipsoid (f > 0, WGS84) — q === 0 && r <= 0 is unreachable because
+	// astroid is only called from the near-antipodal branch, where either y < 0
+	// (q > 0) or |x| > 1 (r > 0). Restore the guard if f is ever made a parameter.
+	// if (!(q === 0 && r <= 0)) {
+	const S = (p * q) / 4;
+	const r2 = squared(r);
+	const r3 = r * r2;
+	const disc = S * (S + 2 * r3);
+	let u = r;
+	if (disc >= 0) {
+		let T3 = S + r3;
+		T3 += T3 < 0 ? -Math.sqrt(disc) : Math.sqrt(disc);
+		const T = Math.cbrt(T3);
+		u += T + (T !== 0 ? r2 / T : 0);
+	} else {
+		const ang = Math.atan2(Math.sqrt(-disc), -(S + r3));
+		u += 2 * r * Math.cos(ang / 3);
 	}
-	return 0;
+	const v = Math.sqrt(squared(u) + q);
+	const uv = u < 0 ? q / (v - u) : u + v;
+	const w = (uv - q) / (2 * v);
+	return uv / (Math.sqrt(uv + squared(w)) + w);
+	// }
+	// return 0;
 }
 
 // ── Series evaluators (Karney 2013, §7) ───────────────────────────────────
