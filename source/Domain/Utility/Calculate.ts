@@ -6,16 +6,14 @@ import {
 } from '../Constants';
 import type { Point } from '../GeoJSON/Geometry/Point';
 import { createBoxFromCoordinates, isWithinBox } from './Box';
+import { karney } from './Geodesic';
+import { squared } from './Numeric';
 
 const D2R = Math.PI / 180;
 const π = Math.PI;
 
 function constrain(value: number, min: number, max: number): number {
 	return Math.max(Math.min(value, max), min);
-}
-
-function squared(n: number): number {
-	return n * n;
 }
 
 function rad(n: number): number {
@@ -104,7 +102,8 @@ const PointToPoint: {
 							sinσ *
 							(cos2σₘ + C * cosσ * (-1 + 2 * cos2σₘ * cos2σₘ)));
 		} while (Math.abs(λ - λʹ) > 1e-12 && ++iterations < 1000); // TV: 'iterate until negligible change in λ' (≈0.006mm)
-		if (iterations >= 1000) throw new EvalError('Vincenty formula failed to converge');
+		if (iterations >= 1000)
+			throw new EvalError('Vincenty formula failed to converge');
 
 		const uSq = cosSqα * EARTH_RADIUS_FACTOR;
 		const A =
@@ -123,12 +122,16 @@ const PointToPoint: {
 
 		return EARTH_RADIUS_MINOR * A * (σ - Δσ);
 	},
+	karney(a, b) {
+		return karney(a, b);
+	},
 };
 
 export type PointToPointCalculation =
 	| 'cartesian'
 	| 'haversine'
 	| 'vincenty'
+	| 'karney'
 	| ((a: Point['coordinates'], b: Point['coordinates']) => number);
 
 export function getClosestPointOnLineByPoint(

@@ -25,6 +25,7 @@
 		"test:integration": "node --require ./test.register.cjs --test 'test/**/*.spec.ts'",
 		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
 		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r html -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
+		"test:geodesic": "node --require ./test.register.cjs scripts/geodtest.ts",
 		"build": "tsup",
 		"lint": "biome lint",
 		"format": "biome format",

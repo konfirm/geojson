@@ -6,8 +6,20 @@ import { isClockwiseWinding, isCounterClockwiseWinding } from './Winding';
 
 // RFC 7946 §3.1.6 — exterior rings are counterclockwise, holes are clockwise.
 // Appendix A.3 canonical examples: https://www.rfc-editor.org/rfc/rfc7946#appendix-A.3
-const RFC7946_EXTERIOR = [[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]];
-const RFC7946_HOLE    = [[100.8, 0.8], [100.8, 0.2], [100.2, 0.2], [100.2, 0.8], [100.8, 0.8]];
+const RFC7946_EXTERIOR = [
+	[100.0, 0.0],
+	[101.0, 0.0],
+	[101.0, 1.0],
+	[100.0, 1.0],
+	[100.0, 0.0],
+];
+const RFC7946_HOLE = [
+	[100.8, 0.8],
+	[100.8, 0.2],
+	[100.2, 0.2],
+	[100.2, 0.8],
+	[100.8, 0.8],
+];
 
 describe('Domain/Utility/Winding', () => {
 	describe('isClockwiseWinding', () => {
