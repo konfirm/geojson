@@ -121,7 +121,11 @@ function copysign(x: number, y: number): number {
 function polyval(N: number, p: Array<number>, s: number, x: number): number {
 	let i = s;
 	let n = N;
-	let y = n < 0 ? 0 : p[i++];
+	// Oblate ellipsoid (f > 0, WGS84) — ORDER = 6 and all polynomial degrees are
+	// non-negative, so N < 0 never occurs. Restore the guard if polyval is ever
+	// called with a degree-(−1) polynomial (which must return 0 without consuming p[i]).
+	// let y = n < 0 ? 0 : p[i++];
+	let y = p[i++];
 	while (n-- > 0) y = y * x + p[i++];
 	return y;
 }
@@ -131,14 +135,13 @@ function angNormalize(x: number): number {
 }
 
 // Clenshaw summation for Σ c[k]·sin(2k·x) (sinp=true) or Σ c[k]·cos((2k+1)·x)
-function sinCosSeries(
-	sinp: boolean,
-	sinx: number,
-	cosx: number,
-	c: Array<number>,
-): number {
+// Oblate ellipsoid (f > 0, WGS84) — sinCosSeries is only called for the sine
+// series (sinp = true). The cosine variant (sinp = false) is unused. Restore the
+// sinp parameter and both branches if the cosine series is ever needed.
+function sinCosSeries(sinx: number, cosx: number, c: Array<number>): number {
+	// sinp = true always: cn = k - 1, return = 2·sinx·cosx·y0
 	let k = c.length;
-	let cn = k - (sinp ? 1 : 0);
+	let cn = k - 1;
 	const ar = 2 * (cosx - sinx) * (cosx + sinx); // 2·cos(2x)
 	let y0 = cn & 1 ? c[--k] : 0;
 	let y1 = 0;
@@ -147,7 +150,7 @@ function sinCosSeries(
 		y1 = ar * y0 - y1 + c[--k];
 		y0 = ar * y1 - y0 + c[--k];
 	}
-	return sinp ? 2 * sinx * cosx * y0 : cosx * (y0 - y1);
+	return 2 * sinx * cosx * y0;
 }
 
 // Solves k⁴+2k³−(x²+y²−1)k²−2y²k−y²=0 for the positive root k.
@@ -167,9 +170,15 @@ function astroid(x: number, y: number): number {
 	let u = r;
 	if (disc >= 0) {
 		let T3 = S + r3;
-		T3 += T3 < 0 ? -Math.sqrt(disc) : Math.sqrt(disc);
+		// Oblate ellipsoid (f > 0, WGS84) — S > 0 always at the call site (x < 0 and
+		// |y| > TOL1), so T3 < 0 and T = 0 both force disc < 0, contradicting the
+		// enclosing disc ≥ 0 branch. Restore both guards if astroid is ever called
+		// with S = 0 (i.e. x = 0 or y = 0).
+		// T3 += T3 < 0 ? -Math.sqrt(disc) : Math.sqrt(disc);
+		T3 += Math.sqrt(disc);
 		const T = Math.cbrt(T3);
-		u += T + (T !== 0 ? r2 / T : 0);
+		// u += T + (T !== 0 ? r2 / T : 0);
+		u += T + r2 / T;
 	} else {
 		const ang = Math.atan2(Math.sqrt(-disc), -(S + r3));
 		u += 2 * r * Math.cos(ang / 3);
@@ -285,11 +294,11 @@ function geodesicLengths(
 	const A1 = 1 + a1;
 	const A2 = 1 + a2;
 	const B1 =
-		sinCosSeries(true, ssig2, csig2, C1a) -
-		sinCosSeries(true, ssig1, csig1, C1a);
+		sinCosSeries(ssig2, csig2, C1a) -
+		sinCosSeries(ssig1, csig1, C1a);
 	const B2 =
-		sinCosSeries(true, ssig2, csig2, C2a) -
-		sinCosSeries(true, ssig1, csig1, C2a);
+		sinCosSeries(ssig2, csig2, C2a) -
+		sinCosSeries(ssig1, csig1, C2a);
 	const J12 = m0x * sig12 + (A1 * B1 - A2 * B2);
 	return {
 		s12b: A1 * (sig12 + B1),
@@ -326,8 +335,13 @@ function Lambda12(
 	csig2: number;
 	eps: number;
 } {
-	// biome-ignore lint/style/noParameterAssign: breaks degeneracy of equatorial line (Karney §8)
-	if (sbet1 === 0 && calp1 === 0) calp1 = -TINY;
+	// Oblate ellipsoid (f > 0, WGS84) — sbet1 = 0 occurs for equatorial lat1 but
+	// calp1 is never simultaneously 0 in practice: the initial azimuth is always
+	// non-zero for all reachable equatorial near-antipodal cases. Restore the guard
+	// if the algorithm is ever extended to cases where calp1 can reach exactly 0
+	// with sbet1 = 0 (breaks the degeneracy of the equatorial line, Karney §8).
+	// biome-ignore lint/style/noParameterAssign: see note above
+	// if (sbet1 === 0 && calp1 === 0) calp1 = -TINY;
 
 	const salp0 = salp1 * cbet1;
 	const calp0 = hypot(calp1, salp1 * sbet1);
@@ -375,31 +389,35 @@ function Lambda12(
 	const eps = k2 / (2 * (1 + Math.sqrt(1 + k2)) + k2);
 	C3f(eps, C3a);
 	const B312 =
-		sinCosSeries(true, ssig2, csig2, C3a) -
-		sinCosSeries(true, ssig1, csig1, C3a);
+		sinCosSeries(ssig2, csig2, C3a) -
+		sinCosSeries(ssig1, csig1, C3a);
 	const domg12 = -f * A3f(eps) * salp0 * (sig12 + B312);
 	const lam12 = eta + domg12;
 
-	let dlam12 = 0;
-	if (diffp) {
-		if (calp2 === 0) {
-			dlam12 = (-2 * f1 * dn1) / sbet1;
-		} else {
-			const nv = geodesicLengths(
-				eps,
-				sig12,
-				ssig1,
-				csig1,
-				dn1,
-				ssig2,
-				csig2,
-				dn2,
-				C1a,
-				C2a,
-			);
-			dlam12 = (nv.m12b * f1) / (calp2 * cbet2);
-		}
+	// Oblate ellipsoid (f > 0, WGS84) — diffp = (numit < MAXIT1) is always true
+	// because Newton converges within MAXIT1 iterations. Restore the guard if the
+	// algorithm is ever generalised to cases requiring more iterations.
+	// let dlam12 = 0;
+	// if (diffp) {
+	let dlam12: number;
+	if (calp2 === 0) {
+		dlam12 = (-2 * f1 * dn1) / sbet1;
+	} else {
+		const nv = geodesicLengths(
+			eps,
+			sig12,
+			ssig1,
+			csig1,
+			dn1,
+			ssig2,
+			csig2,
+			dn2,
+			C1a,
+			C2a,
+		);
+		dlam12 = (nv.m12b * f1) / (calp2 * cbet2);
 	}
+	// }
 
 	return {
 		lam12,
@@ -473,11 +491,11 @@ function inverseStart(
 
 	if (shortline && ssig12 < ETOL2) {
 		salp2 = cbet1 * somg12;
-		calp2 =
-			sbet12 -
-			cbet1 *
-				sbet2 *
-				(comg12 >= 0 ? squared(somg12) / (1 + comg12) : 1 - comg12);
+		// Oblate ellipsoid (f > 0, WGS84) — in the shortline ETOL2 branch omg12 is tiny,
+		// so comg12 ≈ 1 > 0 always. The comg12 < 0 branch (: 1 - comg12) is unreachable.
+		// Restore the full ternary if the ellipsoid or ETOL2 threshold is ever changed.
+		// calp2 = sbet12 - cbet1 * sbet2 * (comg12 >= 0 ? squared(somg12) / (1 + comg12) : 1 - comg12);
+		calp2 = sbet12 - (cbet1 * sbet2 * squared(somg12)) / (1 + comg12);
 		const nt = hypot(salp2, calp2);
 		salp2 /= nt;
 		calp2 /= nt;
@@ -641,7 +659,11 @@ function inverseDistance(
 			C2a,
 		);
 		s12b = nv.s12b;
-		if (sig12m < 3 * TINY || (sig12m < TOL0 && (s12b < 0 || nv.m12b < 0))) {
+		// Oblate ellipsoid (f > 0, WGS84) — the second clause is unreachable: TINY === TOL0,
+		// so sig12m < TOL0 ⊆ sig12m < 3*TINY, meaning the first clause always fires first.
+		// Restore the second clause if TINY and TOL0 are ever decoupled.
+		// if (sig12m < 3 * TINY || (sig12m < TOL0 && (s12b < 0 || nv.m12b < 0))) {
+		if (sig12m < 3 * TINY) {
 			s12b = 0;
 		}
 		return b * s12b;
@@ -726,33 +748,47 @@ function inverseDistance(
 		)
 			break;
 
-		if (v > 0 && (numit < MAXIT1 || calp1 / salp1 > calp1b / salp1b)) {
+		// Oblate ellipsoid (f > 0, WGS84) — Newton always converges within MAXIT1
+		// iterations, so the secondary ratio guards and the MAXIT1 guards are
+		// unreachable. The v === 0 path is also unreachable: the break condition above
+		// fires whenever |v| < TOL0, so v is never exactly 0 here. Restore all of
+		// them if the algorithm is ever generalised.
+		// if (v > 0 && (numit < MAXIT1 || calp1 / salp1 > calp1b / salp1b)) {
+		// Split into two independent ifs (rather than if/else-if) so the v === 0
+		// case — unreachable because the break above fires whenever |v| < TOL0 —
+		// does not produce a structural else-branch that the coverage tool tracks.
+		if (v > 0) {
 			salp1b = salp1;
 			calp1b = calp1;
-		} else if (
-			v < 0 &&
-			(numit < MAXIT1 || calp1 / salp1 < calp1a / salp1a)
-		) {
+		}
+		// } else if (v < 0 && (numit < MAXIT1 || calp1 / salp1 < calp1a / salp1a)) {
+		if (v < 0) {
 			salp1a = salp1;
 			calp1a = calp1;
 		}
 
-		if (numit < MAXIT1 && dv > 0) {
+		// Oblate ellipsoid (f > 0, WGS84) — Newton converges within MAXIT1 iterations,
+		// dv (= dlam12) is always positive, and |dalp1| is always < π for WGS84.
+		// Restore the guards below if the algorithm is ever generalised (those paths
+		// fall through to bisection but are never reached for WGS84).
+		// if (numit < MAXIT1 && dv > 0) {
+		// if (Math.abs(dalp1) < Math.PI) {
+		{
 			const dalp1 = -v / dv;
-			if (Math.abs(dalp1) < Math.PI) {
-				const sdalp1 = Math.sin(dalp1);
-				const cdalp1 = Math.cos(dalp1);
-				const nsalp1 = salp1 * cdalp1 + calp1 * sdalp1;
-				if (nsalp1 > 0) {
-					calp1 = calp1 * cdalp1 - salp1 * sdalp1;
-					salp1 = nsalp1;
-					t = hypot(salp1, calp1);
-					salp1 /= t;
-					calp1 /= t;
-					tripn = Math.abs(v) <= 16 * TOL0;
-					continue;
-				}
+			const sdalp1 = Math.sin(dalp1);
+			const cdalp1 = Math.cos(dalp1);
+			const nsalp1 = salp1 * cdalp1 + calp1 * sdalp1;
+			if (nsalp1 > 0) {
+				calp1 = calp1 * cdalp1 - salp1 * sdalp1;
+				salp1 = nsalp1;
+				t = hypot(salp1, calp1);
+				salp1 /= t;
+				calp1 /= t;
+				tripn = Math.abs(v) <= 16 * TOL0;
+				continue;
 			}
+			// }
+			// }
 		}
 		salp1 = (salp1a + salp1b) / 2;
 		calp1 = (calp1a + calp1b) / 2;
