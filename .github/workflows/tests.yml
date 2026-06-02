@@ -26,9 +26,9 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run test:coverage
+      - run: npm test
 
-  geodesic:
+  coverage:
     needs: test
     runs-on: ubuntu-latest
 
@@ -42,7 +42,32 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run test:geodesic
+      - run: npm run test:coverage:html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: coverage/
+
+  pages:
+    needs: coverage
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deploy
 
   build:
     needs: test
