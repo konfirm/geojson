@@ -14,6 +14,8 @@ import {
 	isStrictGeometry,
 	isStrictGeometryCollection,
 } from './Geometry';
+import { isPoint } from './Geometry/Point';
+import { isStrictPolygon } from './Geometry/Polygon';
 
 describe('GeometryCollection', () => {
 	describe('isGeometryCollection', () => {
@@ -45,6 +47,68 @@ describe('GeometryCollection', () => {
 					type: 'GeometryCollection',
 					geometries: [{ type: 'Point', coordinates: [-181, 0] }],
 				}),
+			);
+		});
+	});
+
+	describe('isGeometryCollection with geometry guard', () => {
+		const pointCollection = {
+			type: 'GeometryCollection',
+			geometries: [point, { type: 'Point', coordinates: [0, 0] }],
+		};
+
+		test('accepts a GeometryCollection where all geometries match the guard', () => {
+			assert.ok(isGeometryCollection(pointCollection, isPoint));
+		});
+		test('rejects a GeometryCollection where any geometry does not match the guard', () => {
+			assert.ok(!isGeometryCollection(geometrycollection, isPoint));
+		});
+		test('accepts an empty GeometryCollection with any guard', () => {
+			assert.ok(
+				isGeometryCollection(
+					{ type: 'GeometryCollection', geometries: [] },
+					isPoint,
+				),
+			);
+		});
+	});
+
+	describe('isStrictGeometryCollection with geometry guard', () => {
+		const strictPolygonCollection = {
+			type: 'GeometryCollection',
+			geometries: [polygon],
+		};
+		const outOfRangeCollection = {
+			type: 'GeometryCollection',
+			geometries: [
+				{
+					type: 'Polygon',
+					coordinates: [
+						[
+							[0, 0],
+							[181, 0],
+							[181, 1],
+							[0, 0],
+						],
+					],
+				},
+			],
+		};
+
+		test('accepts a GeometryCollection where all geometries match the strict guard', () => {
+			assert.ok(
+				isStrictGeometryCollection(
+					strictPolygonCollection,
+					isStrictPolygon,
+				),
+			);
+		});
+		test('rejects a GeometryCollection where any geometry fails the strict guard', () => {
+			assert.ok(
+				!isStrictGeometryCollection(
+					outOfRangeCollection,
+					isStrictPolygon,
+				),
 			);
 		});
 	});

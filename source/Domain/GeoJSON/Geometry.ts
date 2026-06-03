@@ -1,4 +1,10 @@
-import { all, any, isArrayOfType, isKeyOfType } from '@konfirm/guard';
+import {
+	all,
+	any,
+	type Guard,
+	isArrayOfType,
+	isKeyOfType,
+} from '@konfirm/guard';
 import { type GeoJSONObject, isGeoJSONObject } from './Concept/GeoJSONObject';
 
 import {
@@ -24,9 +30,9 @@ import {
 import { isPoint, isStrictPoint, type Point } from './Geometry/Point';
 import { isPolygon, isStrictPolygon, type Polygon } from './Geometry/Polygon';
 
-export type GeometryCollection = GeoJSONObject<{
+export type GeometryCollection<G extends Geometry = Geometry> = GeoJSONObject<{
 	type: 'GeometryCollection';
-	geometries: Array<Geometry>;
+	geometries: Array<G>;
 }>;
 
 export type Geometry =
@@ -68,14 +74,18 @@ const isStrictGeometryCollectionObject = all<GeometryCollection>(
 	isKeyOfType('geometries', isArrayOfType(isStrictGeometry)),
 );
 
-export function isGeometryCollection(
+export function isGeometryCollection<G extends Geometry = Geometry>(
 	value: unknown,
-): value is GeometryCollection {
-	return isGeometryCollectionObject(value);
+	isG: Guard<G> = isGeometry,
+): value is GeometryCollection<G> {
+	return isGeometryCollectionObject(value) && value.geometries.every(isG);
 }
 
-export function isStrictGeometryCollection(
+export function isStrictGeometryCollection<G extends Geometry>(
 	value: unknown,
-): value is GeometryCollection {
-	return isStrictGeometryCollectionObject(value);
+	isG: Guard<G> = isStrictGeometry,
+): value is GeometryCollection<G> {
+	return (
+		isStrictGeometryCollectionObject(value) && value.geometries.every(isG)
+	);
 }
