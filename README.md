@@ -3,7 +3,17 @@
 
 # @konfirm/geojson
 
-GeoJSON validation, iteration, intersection and distance calculation.
+TypeScript-first GeoJSON utilities built to [RFC 7946](https://www.rfc-editor.org/rfc/rfc7946). Strict type guards that actually enforce winding order (one of very few libraries that do), geodesic distance across four formulas from haversine to Karney, and intersection testing across all geometry types.
+
+## Installation
+
+```sh
+npm install @konfirm/geojson
+```
+
+```ts
+import { isStrictPolygon, distance, karney } from '@konfirm/geojson';
+```
 
 ## Upgrading to v2?
 
