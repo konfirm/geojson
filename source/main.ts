@@ -51,5 +51,12 @@ export {
 } from './Domain/GeoJSON/GeometryCollection';
 // SimpleGeometryIterator
 export { SimpleGeometryIterator } from './Domain/Iterator/SimpleGeometry';
-export { distance } from './Domain/Utility/Distance';
+export {
+	cartesian,
+	distance,
+	haversine,
+	karney,
+	vincenty,
+} from './Domain/Utility/Distance';
+export type { PointToPointCalculation } from './Domain/Utility/Calculate';
 export { intersect } from './Domain/Utility/Intersect';

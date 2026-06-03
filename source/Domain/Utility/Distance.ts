@@ -5,12 +5,16 @@ import type { Polygon } from '../GeoJSON/Geometry/Polygon';
 import { IterablePairIterator } from '../Iterator/IterablePair';
 import { SimpleGeometryIterator } from '../Iterator/SimpleGeometry';
 import {
+	cartesian as cartesianCoords,
 	getDistanceOfLineToLine,
 	getDistanceOfPointToLine,
 	getDistanceOfPointToPoint,
+	haversine as haversineCoords,
 	isPointInRing,
 	type PointToPointCalculation,
+	vincenty as vincentyCoords,
 } from './Calculate';
+import { karney as karneyCoords } from './Geodesic';
 import { segments } from './Segments';
 
 const geometries = {
@@ -107,10 +111,26 @@ const geometries = {
 	},
 };
 
+export function cartesian(a: GeoJSON, b: GeoJSON): number {
+	return distance(a, b, cartesianCoords);
+}
+
+export function haversine(a: GeoJSON, b: GeoJSON): number {
+	return distance(a, b, haversineCoords);
+}
+
+export function vincenty(a: GeoJSON, b: GeoJSON): number {
+	return distance(a, b, vincentyCoords);
+}
+
+export function karney(a: GeoJSON, b: GeoJSON): number {
+	return distance(a, b, karneyCoords);
+}
+
 export function distance(
 	a: GeoJSON,
 	b: GeoJSON,
-	calculation: PointToPointCalculation = 'cartesian',
+	calculation: PointToPointCalculation = 'haversine',
 ): number {
 	const lookup = <
 		Record<

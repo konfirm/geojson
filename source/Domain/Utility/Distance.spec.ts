@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Improbability } from '../../../test/helper/spec';
 import type { Feature, Point, Polygon } from '../../main';
-import { distance } from './Distance';
+import { cartesian, distance, haversine, karney, vincenty } from './Distance';
 
 const amsterdam: Feature = {
 	type: 'Feature',
@@ -17,10 +17,10 @@ const jfk: Feature = {
 
 describe('distance', () => {
 	describe('formula variants', () => {
-		test('defaults to cartesian', () => {
+		test('defaults to haversine', () => {
 			assert.strictEqual(
 				distance(amsterdam, jfk),
-				distance(amsterdam, jfk, 'cartesian'),
+				distance(amsterdam, jfk, 'haversine'),
 			);
 		});
 		test('haversine gives a shorter result than cartesian for real-world coordinates', () => {
@@ -34,6 +34,21 @@ describe('distance', () => {
 			const h = distance(amsterdam, jfk, 'haversine');
 			const v = distance(amsterdam, jfk, 'vincenty');
 			assert.ok(Math.abs(h - v) / h < 0.01);
+		});
+	});
+
+	describe('formula functions', () => {
+		test('cartesian matches distance with cartesian formula', () => {
+			assert.strictEqual(cartesian(amsterdam, jfk), distance(amsterdam, jfk, 'cartesian'));
+		});
+		test('haversine matches distance with haversine formula', () => {
+			assert.strictEqual(haversine(amsterdam, jfk), distance(amsterdam, jfk, 'haversine'));
+		});
+		test('vincenty matches distance with vincenty formula', () => {
+			assert.strictEqual(vincenty(amsterdam, jfk), distance(amsterdam, jfk, 'vincenty'));
+		});
+		test('karney matches distance with karney formula', () => {
+			assert.strictEqual(karney(amsterdam, jfk), distance(amsterdam, jfk, 'karney'));
 		});
 	});
 

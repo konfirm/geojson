@@ -27,31 +27,26 @@ const EARTH_RADIUS_FACTOR =
 	EARTH_RADIUS_MINOR_SQUARED;
 const EARTH_INVERSE_FLATTENING = 1 / EARTH_FLATTENING;
 
-const PointToPoint: {
-	[key: string]: (
-		...positions: [Point['coordinates'], Point['coordinates']]
-	) => number;
-} = {
-	cartesian([λa, φa], [λb, φb]) {
-		return (
-			EARTH_RADIUS * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)))
-		);
-	},
-	haversine([λa, φa], [λb, φb]) {
-		//https://www.movable-type.co.uk/scripts/latlong.html
-		const Δ =
-			squared(Math.sin(rad(φb - φa) / 2)) +
-			Math.cos(rad(φa)) *
-				Math.cos(rad(φb)) *
-				squared(Math.sin(rad(λb - λa) / 2));
+export function cartesian([λa, φa]: Point['coordinates'], [λb, φb]: Point['coordinates']): number {
+	return EARTH_RADIUS * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)));
+}
 
-		return EARTH_RADIUS * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
-	},
-	vincenty(...points) {
-		//https://www.movable-type.co.uk/scripts/latlong-vincenty.html
-		const [[λ1, φ1], [λ2, φ2]] = points.map((p) =>
-			(<Array<number>>p).map(rad),
-		);
+export function haversine([λa, φa]: Point['coordinates'], [λb, φb]: Point['coordinates']): number {
+	//https://www.movable-type.co.uk/scripts/latlong.html
+	const Δ =
+		squared(Math.sin(rad(φb - φa) / 2)) +
+		Math.cos(rad(φa)) *
+			Math.cos(rad(φb)) *
+			squared(Math.sin(rad(λb - λa) / 2));
+
+	return EARTH_RADIUS * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
+}
+
+export function vincenty(a: Point['coordinates'], b: Point['coordinates']): number {
+	//https://www.movable-type.co.uk/scripts/latlong-vincenty.html
+	const [[λ1, φ1], [λ2, φ2]] = [a, b].map((p) =>
+		(<Array<number>>p).map(rad),
+	);
 		const L = λ2 - λ1; // L = difference in longitude, U = reduced latitude, defined by tan U = (1-f)·tanφ.
 		const tanU1 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ1),
 			cosU1 = 1 / Math.sqrt(1 + tanU1 * tanU1),
@@ -123,11 +118,16 @@ const PointToPoint: {
 							(-3 + 4 * sinσ * sinσ) *
 							(-3 + 4 * cos2σₘ * cos2σₘ)));
 
-		return EARTH_RADIUS_MINOR * A * (σ - Δσ);
-	},
-	karney(a, b) {
-		return karney(a, b);
-	},
+	return EARTH_RADIUS_MINOR * A * (σ - Δσ);
+}
+
+const PointToPoint: {
+	[key: string]: (a: Point['coordinates'], b: Point['coordinates']) => number;
+} = {
+	cartesian,
+	haversine,
+	vincenty,
+	karney,
 };
 
 export type PointToPointCalculation =
