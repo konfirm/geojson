@@ -294,11 +294,9 @@ function geodesicLengths(
 	const A1 = 1 + a1;
 	const A2 = 1 + a2;
 	const B1 =
-		sinCosSeries(ssig2, csig2, C1a) -
-		sinCosSeries(ssig1, csig1, C1a);
+		sinCosSeries(ssig2, csig2, C1a) - sinCosSeries(ssig1, csig1, C1a);
 	const B2 =
-		sinCosSeries(ssig2, csig2, C2a) -
-		sinCosSeries(ssig1, csig1, C2a);
+		sinCosSeries(ssig2, csig2, C2a) - sinCosSeries(ssig1, csig1, C2a);
 	const J12 = m0x * sig12 + (A1 * B1 - A2 * B2);
 	return {
 		s12b: A1 * (sig12 + B1),
@@ -319,7 +317,7 @@ function Lambda12(
 	calp1: number,
 	slam12: number,
 	clam12: number,
-	diffp: boolean,
+	_diffp: boolean,
 	C1a: Array<number>,
 	C2a: Array<number>,
 	C3a: Array<number>,
@@ -340,9 +338,7 @@ function Lambda12(
 	// non-zero for all reachable equatorial near-antipodal cases. Restore the guard
 	// if the algorithm is ever extended to cases where calp1 can reach exactly 0
 	// with sbet1 = 0 (breaks the degeneracy of the equatorial line, Karney §8).
-	// biome-ignore lint/style/noParameterAssign: see note above
 	// if (sbet1 === 0 && calp1 === 0) calp1 = -TINY;
-
 	const salp0 = salp1 * cbet1;
 	const calp0 = hypot(calp1, salp1 * sbet1);
 
@@ -389,8 +385,7 @@ function Lambda12(
 	const eps = k2 / (2 * (1 + Math.sqrt(1 + k2)) + k2);
 	C3f(eps, C3a);
 	const B312 =
-		sinCosSeries(ssig2, csig2, C3a) -
-		sinCosSeries(ssig1, csig1, C3a);
+		sinCosSeries(ssig2, csig2, C3a) - sinCosSeries(ssig1, csig1, C3a);
 	const domg12 = -f * A3f(eps) * salp0 * (sig12 + B312);
 	const lam12 = eta + domg12;
 

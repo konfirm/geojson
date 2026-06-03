@@ -58,5 +58,4 @@ export {
 	karney,
 	vincenty,
 } from './Domain/Utility/Distance';
-export type { PointToPointCalculation } from './Domain/Utility/Calculate';
 export { intersect } from './Domain/Utility/Intersect';

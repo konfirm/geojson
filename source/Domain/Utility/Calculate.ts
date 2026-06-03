@@ -27,11 +27,17 @@ const EARTH_RADIUS_FACTOR =
 	EARTH_RADIUS_MINOR_SQUARED;
 const EARTH_INVERSE_FLATTENING = 1 / EARTH_FLATTENING;
 
-export function cartesian([λa, φa]: Point['coordinates'], [λb, φb]: Point['coordinates']): number {
+export function cartesian(
+	[λa, φa]: Point['coordinates'],
+	[λb, φb]: Point['coordinates'],
+): number {
 	return EARTH_RADIUS * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)));
 }
 
-export function haversine([λa, φa]: Point['coordinates'], [λb, φb]: Point['coordinates']): number {
+export function haversine(
+	[λa, φa]: Point['coordinates'],
+	[λb, φb]: Point['coordinates'],
+): number {
 	//https://www.movable-type.co.uk/scripts/latlong.html
 	const Δ =
 		squared(Math.sin(rad(φb - φa) / 2)) +
@@ -42,81 +48,81 @@ export function haversine([λa, φa]: Point['coordinates'], [λb, φb]: Point['c
 	return EARTH_RADIUS * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
 }
 
-export function vincenty(a: Point['coordinates'], b: Point['coordinates']): number {
+export function vincenty(
+	a: Point['coordinates'],
+	b: Point['coordinates'],
+): number {
 	//https://www.movable-type.co.uk/scripts/latlong-vincenty.html
-	const [[λ1, φ1], [λ2, φ2]] = [a, b].map((p) =>
-		(<Array<number>>p).map(rad),
-	);
-		const L = λ2 - λ1; // L = difference in longitude, U = reduced latitude, defined by tan U = (1-f)·tanφ.
-		const tanU1 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ1),
-			cosU1 = 1 / Math.sqrt(1 + tanU1 * tanU1),
-			sinU1 = tanU1 * cosU1;
-		const tanU2 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ2),
-			cosU2 = 1 / Math.sqrt(1 + tanU2 * tanU2),
-			sinU2 = tanU2 * cosU2;
+	const [[λ1, φ1], [λ2, φ2]] = [a, b].map((p) => (<Array<number>>p).map(rad));
+	const L = λ2 - λ1; // L = difference in longitude, U = reduced latitude, defined by tan U = (1-f)·tanφ.
+	const tanU1 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ1),
+		cosU1 = 1 / Math.sqrt(1 + tanU1 * tanU1),
+		sinU1 = tanU1 * cosU1;
+	const tanU2 = (1 - EARTH_INVERSE_FLATTENING) * Math.tan(φ2),
+		cosU2 = 1 / Math.sqrt(1 + tanU2 * tanU2),
+		sinU2 = tanU2 * cosU2;
 
-		const antipodal = Math.abs(L) > π / 2 || Math.abs(φ2 - φ1) > π / 2;
+	const antipodal = Math.abs(L) > π / 2 || Math.abs(φ2 - φ1) > π / 2;
 
-		let λ = L;
-		let sinλ = null;
-		let cosλ = null; // λ = difference in longitude on an auxiliary sphere
-		let σ = antipodal ? π : 0;
-		let sinσ = 0;
-		let cosσ = antipodal ? -1 : 1;
-		let sinSqσ = null; // σ = angular distance P₁ P₂ on the sphere
-		let cos2σₘ = 1; // σₘ = angular distance on the sphere from the equator to the midpoint of the line
-		let cosSqα = 1; // α = azimuth of the geodesic at the equator
-		let λʹ = null;
-		let prevΔλ = Infinity;
+	let λ = L;
+	let sinλ = null;
+	let cosλ = null; // λ = difference in longitude on an auxiliary sphere
+	let σ = antipodal ? π : 0;
+	let sinσ = 0;
+	let cosσ = antipodal ? -1 : 1;
+	let sinSqσ = null; // σ = angular distance P₁ P₂ on the sphere
+	let cos2σₘ = 1; // σₘ = angular distance on the sphere from the equator to the midpoint of the line
+	let cosSqα = 1; // α = azimuth of the geodesic at the equator
+	let λʹ = null;
+	let prevΔλ = Infinity;
 
-		do {
-			sinλ = Math.sin(λ);
-			cosλ = Math.cos(λ);
-			sinSqσ =
-				(cosU2 * sinλ) ** 2 +
-				(cosU1 * sinU2 - sinU1 * cosU2 * cosλ) ** 2;
-			if (Math.abs(sinSqσ) < 1e-24) break; // co-incident/antipodal points (σ < ≈0.006mm)
-			sinσ = Math.sqrt(sinSqσ);
-			cosσ = sinU1 * sinU2 + cosU1 * cosU2 * cosλ;
-			σ = Math.atan2(sinσ, cosσ);
-			const sinα = (cosU1 * cosU2 * sinλ) / sinσ;
-			cosSqα = 1 - sinα * sinα;
-			cos2σₘ = cosSqα !== 0 ? cosσ - (2 * sinU1 * sinU2) / cosSqα : 0; // on equatorial line cos²α = 0 (§6)
-			const C =
-				(EARTH_INVERSE_FLATTENING / 16) *
-				cosSqα *
-				(4 + EARTH_INVERSE_FLATTENING * (4 - 3 * cosSqα));
-			λʹ = λ;
-			λ =
-				L +
-				(1 - C) *
-					EARTH_INVERSE_FLATTENING *
-					sinα *
-					(σ +
-						C *
-							sinσ *
-							(cos2σₘ + C * cosσ * (-1 + 2 * cos2σₘ * cos2σₘ)));
-			const Δλ = Math.abs(λ - λʹ);
-			// λ has entered a 2-cycle: floating-point fixed point, will never converge
-			if (Δλ !== 0 && Δλ === prevΔλ)
-				throw new EvalError('Vincenty formula failed to converge');
-			prevΔλ = Δλ;
-		} while (Math.abs(λ - λʹ) > 1e-12); // TV: 'iterate until negligible change in λ' (≈0.006mm)
+	do {
+		sinλ = Math.sin(λ);
+		cosλ = Math.cos(λ);
+		sinSqσ =
+			(cosU2 * sinλ) ** 2 + (cosU1 * sinU2 - sinU1 * cosU2 * cosλ) ** 2;
+		if (Math.abs(sinSqσ) < 1e-24) break; // co-incident/antipodal points (σ < ≈0.006mm)
+		sinσ = Math.sqrt(sinSqσ);
+		cosσ = sinU1 * sinU2 + cosU1 * cosU2 * cosλ;
+		σ = Math.atan2(sinσ, cosσ);
+		const sinα = (cosU1 * cosU2 * sinλ) / sinσ;
+		cosSqα = 1 - sinα * sinα;
+		cos2σₘ = cosSqα !== 0 ? cosσ - (2 * sinU1 * sinU2) / cosSqα : 0; // on equatorial line cos²α = 0 (§6)
+		const C =
+			(EARTH_INVERSE_FLATTENING / 16) *
+			cosSqα *
+			(4 + EARTH_INVERSE_FLATTENING * (4 - 3 * cosSqα));
+		λʹ = λ;
+		λ =
+			L +
+			(1 - C) *
+				EARTH_INVERSE_FLATTENING *
+				sinα *
+				(σ +
+					C *
+						sinσ *
+						(cos2σₘ + C * cosσ * (-1 + 2 * cos2σₘ * cos2σₘ)));
+		const Δλ = Math.abs(λ - λʹ);
+		// λ has entered a 2-cycle: floating-point fixed point, will never converge
+		if (Δλ !== 0 && Δλ === prevΔλ)
+			throw new EvalError('Vincenty formula failed to converge');
+		prevΔλ = Δλ;
+	} while (Math.abs(λ - λʹ) > 1e-12); // TV: 'iterate until negligible change in λ' (≈0.006mm)
 
-		const uSq = cosSqα * EARTH_RADIUS_FACTOR;
-		const A =
-			1 + (uSq / 16384) * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
-		const B = (uSq / 1024) * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
-		const Δσ =
-			B *
-			sinσ *
-			(cos2σₘ +
-				(B / 4) *
-					(cosσ * (-1 + 2 * cos2σₘ * cos2σₘ) -
-						(B / 6) *
-							cos2σₘ *
-							(-3 + 4 * sinσ * sinσ) *
-							(-3 + 4 * cos2σₘ * cos2σₘ)));
+	const uSq = cosSqα * EARTH_RADIUS_FACTOR;
+	const A =
+		1 + (uSq / 16384) * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
+	const B = (uSq / 1024) * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
+	const Δσ =
+		B *
+		sinσ *
+		(cos2σₘ +
+			(B / 4) *
+				(cosσ * (-1 + 2 * cos2σₘ * cos2σₘ) -
+					(B / 6) *
+						cos2σₘ *
+						(-3 + 4 * sinσ * sinσ) *
+						(-3 + 4 * cos2σₘ * cos2σₘ)));
 
 	return EARTH_RADIUS_MINOR * A * (σ - Δσ);
 }

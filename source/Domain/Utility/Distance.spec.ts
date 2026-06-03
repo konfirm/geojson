@@ -39,16 +39,28 @@ describe('distance', () => {
 
 	describe('formula functions', () => {
 		test('cartesian matches distance with cartesian formula', () => {
-			assert.strictEqual(cartesian(amsterdam, jfk), distance(amsterdam, jfk, 'cartesian'));
+			assert.strictEqual(
+				cartesian(amsterdam, jfk),
+				distance(amsterdam, jfk, 'cartesian'),
+			);
 		});
 		test('haversine matches distance with haversine formula', () => {
-			assert.strictEqual(haversine(amsterdam, jfk), distance(amsterdam, jfk, 'haversine'));
+			assert.strictEqual(
+				haversine(amsterdam, jfk),
+				distance(amsterdam, jfk, 'haversine'),
+			);
 		});
 		test('vincenty matches distance with vincenty formula', () => {
-			assert.strictEqual(vincenty(amsterdam, jfk), distance(amsterdam, jfk, 'vincenty'));
+			assert.strictEqual(
+				vincenty(amsterdam, jfk),
+				distance(amsterdam, jfk, 'vincenty'),
+			);
 		});
 		test('karney matches distance with karney formula', () => {
-			assert.strictEqual(karney(amsterdam, jfk), distance(amsterdam, jfk, 'karney'));
+			assert.strictEqual(
+				karney(amsterdam, jfk),
+				distance(amsterdam, jfk, 'karney'),
+			);
 		});
 	});
 
