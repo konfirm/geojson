@@ -26,6 +26,7 @@
 		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.ts'",
 		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r text html-spa -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.ts'",
 		"test:geodesic": "node --require ./test.register.cjs test/Domain/Utility/Geodesic.spec.stream.ts",
+		"compare:formulas": "node --require ./test.register.cjs scripts/geodtest-compare.ts",
 		"build": "tsup",
 		"lint": "biome lint",
 		"format": "biome format",
