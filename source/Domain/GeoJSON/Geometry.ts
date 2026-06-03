@@ -1,4 +1,6 @@
-import { any } from '@konfirm/guard';
+import { all, any, isArrayOfType, isKeyOfType } from '@konfirm/guard';
+import { type GeoJSONObject, isGeoJSONObject } from './Concept/GeoJSONObject';
+
 import {
 	isLineString,
 	isStrictLineString,
@@ -22,13 +24,20 @@ import {
 import { isPoint, isStrictPoint, type Point } from './Geometry/Point';
 import { isPolygon, isStrictPolygon, type Polygon } from './Geometry/Polygon';
 
+export type GeometryCollection = GeoJSONObject<{
+	type: 'GeometryCollection';
+	geometries: Array<Geometry>;
+}>;
+
 export type Geometry =
 	| Point
 	| MultiPoint
 	| LineString
 	| MultiLineString
 	| Polygon
-	| MultiPolygon;
+	| MultiPolygon
+	| GeometryCollection;
+
 export const isGeometry = any<Geometry>(
 	isPoint,
 	isMultiPoint,
@@ -36,7 +45,9 @@ export const isGeometry = any<Geometry>(
 	isMultiLineString,
 	isPolygon,
 	isMultiPolygon,
+	isGeometryCollection,
 );
+
 export const isStrictGeometry = any<Geometry>(
 	isStrictPoint,
 	isStrictMultiPoint,
@@ -44,4 +55,27 @@ export const isStrictGeometry = any<Geometry>(
 	isStrictMultiLineString,
 	isStrictPolygon,
 	isStrictMultiPolygon,
+	isStrictGeometryCollection,
 );
+
+const isGeometryCollectionObject = all<GeometryCollection>(
+	isGeoJSONObject('GeometryCollection'),
+	isKeyOfType('geometries', isArrayOfType(isGeometry)),
+);
+
+const isStrictGeometryCollectionObject = all<GeometryCollection>(
+	isGeoJSONObject('GeometryCollection'),
+	isKeyOfType('geometries', isArrayOfType(isStrictGeometry)),
+);
+
+export function isGeometryCollection(
+	value: unknown,
+): value is GeometryCollection {
+	return isGeometryCollectionObject(value);
+}
+
+export function isStrictGeometryCollection(
+	value: unknown,
+): value is GeometryCollection {
+	return isStrictGeometryCollectionObject(value);
+}

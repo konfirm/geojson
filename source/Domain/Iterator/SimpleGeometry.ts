@@ -9,7 +9,7 @@ import type {
 import type { Feature } from '../GeoJSON/Feature';
 import type { FeatureCollection } from '../GeoJSON/FeatureCollection';
 import type { GeoJSON } from '../GeoJSON/GeoJSON';
-import type { GeometryCollection } from '../GeoJSON/GeometryCollection';
+import type { GeometryCollection } from '../GeoJSON/Geometry';
 
 type SimpleGeometry = Point | LineString | Polygon;
 type UnwrapGeometry = Exclude<GeoJSON, SimpleGeometry>;

@@ -15,8 +15,11 @@ export {
 export { GeoJSON, isGeoJSON, isStrictGeoJSON } from './Domain/GeoJSON/GeoJSON';
 export {
 	Geometry,
+	GeometryCollection,
 	isGeometry,
+	isGeometryCollection,
 	isStrictGeometry,
+	isStrictGeometryCollection,
 } from './Domain/GeoJSON/Geometry';
 export {
 	isLineString,
@@ -44,12 +47,6 @@ export {
 	isStrictPolygon,
 	Polygon,
 } from './Domain/GeoJSON/Geometry/Polygon';
-export {
-	GeometryCollection,
-	isGeometryCollection,
-	isStrictGeometryCollection,
-} from './Domain/GeoJSON/GeometryCollection';
-// SimpleGeometryIterator
 export { SimpleGeometryIterator } from './Domain/Iterator/SimpleGeometry';
 export {
 	cartesian,

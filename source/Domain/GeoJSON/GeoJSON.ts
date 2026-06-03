@@ -5,12 +5,14 @@ import {
 	isFeatureCollection,
 	isStrictFeatureCollection,
 } from './FeatureCollection';
-import { type Geometry, isGeometry, isStrictGeometry } from './Geometry';
 import {
+	type Geometry,
 	type GeometryCollection,
+	isGeometry,
 	isGeometryCollection,
+	isStrictGeometry,
 	isStrictGeometryCollection,
-} from './GeometryCollection';
+} from './Geometry';
 
 export type GeoJSON =
 	| Geometry
