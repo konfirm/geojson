@@ -72,7 +72,7 @@ const PointToPoint: {
 		let cos2σₘ = 1; // σₘ = angular distance on the sphere from the equator to the midpoint of the line
 		let cosSqα = 1; // α = azimuth of the geodesic at the equator
 		let λʹ = null;
-		let iterations = 0;
+		let prevΔλ = Infinity;
 
 		do {
 			sinλ = Math.sin(λ);
@@ -101,9 +101,12 @@ const PointToPoint: {
 						C *
 							sinσ *
 							(cos2σₘ + C * cosσ * (-1 + 2 * cos2σₘ * cos2σₘ)));
-		} while (Math.abs(λ - λʹ) > 1e-12 && ++iterations < 1000); // TV: 'iterate until negligible change in λ' (≈0.006mm)
-		if (iterations >= 1000)
-			throw new EvalError('Vincenty formula failed to converge');
+			const Δλ = Math.abs(λ - λʹ);
+			// λ has entered a 2-cycle: floating-point fixed point, will never converge
+			if (Δλ !== 0 && Δλ === prevΔλ)
+				throw new EvalError('Vincenty formula failed to converge');
+			prevΔλ = Δλ;
+		} while (Math.abs(λ - λʹ) > 1e-12); // TV: 'iterate until negligible change in λ' (≈0.006mm)
 
 		const uSq = cosSqα * EARTH_RADIUS_FACTOR;
 		const A =
