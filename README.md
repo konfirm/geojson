@@ -5,6 +5,38 @@
 
 GeoJSON validation, iteration, intersection and distance calculation.
 
+## Upgrading to v2?
+
+Three breaking changes. Quick fixes below; the [full migration guide](./MIGRATION.md) has the details.
+
+| Change | v1 | v2 | Quick fix |
+|--------|----|----|-----------|
+| `distance()` default | `'cartesian'` | `'haversine'` | Pass `'cartesian'` explicitly, or `import { cartesian as distance }` |
+| `isStrictPolygon` winding | not enforced | RFC 7946 §3.1.6 (CCW exterior, CW interior) | Use `isPolygon` for loose validation |
+| `vincenty` near-antipodal | silent wrong result | throws `EvalError` | Catch the error, or switch to `'karney'` |
+
+On the winding: `isStrictPolygon` didn't check the one thing [RFC 7946](https://www.rfc-editor.org/rfc/rfc7946#section-3.1.6) says polygons MUST do — the winding. Counterclockwise for the outer ring, and clockwise for the inner rings (holes). To top it off, if it had checked, it would have been wrong anyway. Wrong formula, wrong data backing it up. That's on me — [read more on what happened, why I didn't notice, and what was done to prevent it](./docs/adr-winding-and-test-data.md).
+
+**The most likely change you need to make** is the `distance()` default. If you had:
+
+```ts
+import { distance } from '@konfirm/geojson';
+distance(pointA, polygonB);
+```
+
+you are getting a better answer now. Don't want that? Pick your fix:
+
+```ts
+// explicit at the call site
+distance(pointA, polygonB, 'cartesian');
+
+// or: import the formula directly — zero call-site changes
+import { cartesian as distance } from '@konfirm/geojson';
+distance(pointA, polygonB);
+```
+
+Either way, [ask yourself whether `cartesian` is actually what you want](./MIGRATION.md#1-distance-default-formula-changed-from-cartesian-to-haversine) — for real-world coordinates it can be off by more than 50%.
+
 ## API
 
 ### Types
@@ -27,13 +59,13 @@ All [GeoJSON types](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1) a
 
 ### Type Guards
 
-Most of the exported functionality is based on validation of GeoJSON objects, validating required and optional (if provided) properties. 
+Most of the exported functionality is based on validation of GeoJSON objects, validating required and optional (if provided) properties.
 The `isStrict*` variants of the type guards also validate the following:
  - `Longitude` is a number in the range (inclusive) `-180..180`
  - `Latitude` is a number in the range (inclusive) `-90..90`
  - `Altitude` is a number in the range (inclusive) `-6371008.7714..20180000` (Earth center(-ish) up to the GPS satelite distance)
  - `Polygon` "LinearRing" are closed (first and last `Position` are identical)
- - ~~`Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))~~ _(not yet enforced — planned for v2)_
+ - `Polygon` "LinearRing" have the correct winding per RFC 7946 §3.1.6: counterclockwise for exterior rings, clockwise for interior rings (holes)
 
 
 | type               | guard                  | strict guard                 | description                                                                                                        |
@@ -93,42 +125,38 @@ console.log('feature intersects point', intersect(feature, point)); // true
 
 ### distance
 
-Obtain the (shortest) distance in meters between two GeoJSON objects. There are three formulas which can be used:
+Obtain the (shortest) distance in meters between two GeoJSON objects. Choose a formula based on your use case:
 
- - `cartesian` (default), calculates the distance between coordinates using the Pythagorean equation, this is the fastest formula at the cost of (huge amount of) accuracy
- - `haversine`, calculates the distance between coordinates using the [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula), improves the accuracy to a level which is probably suitable for most needs with a decent performance
- - `vincenty`, calculates the distance between coordinates using the [Vincenty's formula](https://en.wikipedia.org/wiki/Vincenty%27s_formulae), the most accurate but the least performant algorithm.
+ - `haversine` (**default**) — geographic lon/lat coordinates, most use cases; good accuracy, good performance
+ - `vincenty` — when you need higher accuracy than haversine and can guarantee inputs are not near-antipodal — points on nearly opposite sides of the Earth — (throws for those)
+ - `karney` — when correctness is unconditional: near-antipodal inputs, or when you simply cannot afford a wrong answer; ~15 nm accuracy on WGS84
+ - `cartesian` — when coordinates are in a metric projected system (e.g. RD New / EPSG:28992, UTM) where Euclidean distance is correct; note that projected coordinates are not valid strict GeoJSON (RFC 7946 requires geographic lon/lat, WGS84) — **do not use for geographic coordinates**
 
-Usage: `distance(<Geometry(Collection)|Feature(Collection)>, <Geometry(Collection)|Feature(Collection)> [, <'cartesian'|'haversine'|'vincenty'>]): number`
+Each formula is also exported as a standalone function for direct use and better tree-shaking:
+
+Usage: `distance(<GeoJSON>, <GeoJSON> [, <'haversine'|'vincenty'|'karney'|'cartesian'>]): number`
 
 ```ts
-import { distance, Feature } from '@konfirm/geojson';
+import { distance, karney, Feature } from '@konfirm/geojson';
 
-    const a: Feature = {
-        type: 'Feature',
-        properties: {
-            name: 'Schiphol Airport, Amsterdam',
-        },
-        geometry: {
-            type: 'Point',
-            coordinates: [4.763889, 52.308333],
-        },
-    };
-    const b: Feature = {
-        type: 'Feature',
-        properties: {
-            name: 'John F. Kennedy International Airport, New York',
-        },
-        geometry: {
-            type: 'Point',
-            coordinates: [-73.778889, 40.639722],
-        },
-    };
+const a: Feature = {
+    type: 'Feature',
+    properties: { name: 'Schiphol Airport, Amsterdam' },
+    geometry: { type: 'Point', coordinates: [4.763889, 52.308333] },
+};
+const b: Feature = {
+    type: 'Feature',
+    properties: { name: 'John F. Kennedy International Airport, New York' },
+    geometry: { type: 'Point', coordinates: [-73.778889, 40.639722] },
+};
 
-    console.log(distance(a, b));              // 8829424.604594177 ('cartesian' is the default)
-    console.log(distance(a, b, 'cartesian')); // 8829424.604594177
-    console.log(distance(a, b, 'haversine')); // 5847546.425707642
-    console.log(distance(a, b, 'vincenty'));  // 5863355.371234315
+console.log(distance(a, b));              // 5847546.425707642 ('haversine' is the default)
+console.log(distance(a, b, 'haversine')); // 5847546.425707642
+console.log(distance(a, b, 'vincenty'));  // 5863355.371234315
+console.log(distance(a, b, 'karney'));    // 5863355.371221913
+console.log(distance(a, b, 'cartesian')); // 8829424.604594177
+
+console.log(karney(a, b)); // 5863446.282438116 — same as distance(a, b, 'karney')
 ```
 
 ### SimpleGeometryIterator
@@ -239,7 +267,7 @@ const simplified = [...new SimpleGeometryIterator(multipoint, geometrycollection
 
 ## License
 
-MIT License Copyright (c) 2021-2023 Rogier Spieker (Konfirm)
+MIT License Copyright (c) 2021-2026 Rogier Spieker (Konfirm)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
