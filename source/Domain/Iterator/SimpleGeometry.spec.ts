@@ -322,4 +322,22 @@ describe('Domain/Iterator/SimpleGeometryIterator', () => {
 			expected,
 		);
 	});
+
+	test('Feature with null geometry do not yield (nor throw)', () => {
+		const expected: Array<unknown> = [];
+		const feature: Feature = {
+			type: 'Feature',
+			geometry: null,
+			properties: null,
+		};
+		const featurecollection: FeatureCollection = {
+			type: 'FeatureCollection',
+			features: [feature],
+		};
+
+		assert.deepStrictEqual(
+			[...new SimpleGeometryIterator(featurecollection, feature)],
+			expected,
+		);
+	});
 });

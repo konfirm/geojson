@@ -67,14 +67,18 @@ const reducers: Reducer = {
 		}
 	},
 	*Feature({ geometry }: Feature, unwrap): Iterable<SimpleGeometry> {
-		yield* unwrap(geometry);
+		if (geometry) {
+			yield* unwrap(geometry);
+		}
 	},
 	*FeatureCollection(
 		{ features }: FeatureCollection,
 		unwrap,
 	): Iterable<SimpleGeometry> {
 		for (const { geometry } of features) {
-			yield* unwrap(geometry);
+			if (geometry) {
+				yield* unwrap(geometry);
+			}
 		}
 	},
 };
