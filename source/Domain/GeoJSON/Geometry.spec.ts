@@ -11,8 +11,10 @@ import {
 import {
 	isGeometry,
 	isGeometryCollection,
+	isGeometryPrimitive,
 	isStrictGeometry,
 	isStrictGeometryCollection,
+	isStrictGeometryPrimitive,
 } from './Geometry';
 import { isPoint } from './Geometry/Point';
 import { isStrictPolygon } from './Geometry/Polygon';
@@ -114,9 +116,77 @@ describe('GeometryCollection', () => {
 	});
 });
 
+describe('GeometryPrimitive', () => {
+	describe('isGeometryPrimitive', () => {
+		test('accepts the six coordinate-bearing geometry types', () => {
+			assert.ok(isGeometryPrimitive(point));
+			assert.ok(isGeometryPrimitive(linestring));
+			assert.ok(isGeometryPrimitive(polygon));
+			assert.ok(
+				isGeometryPrimitive({
+					type: 'MultiPoint',
+					coordinates: [[0, 0]],
+				}),
+			);
+			assert.ok(
+				isGeometryPrimitive({
+					type: 'MultiLineString',
+					coordinates: [
+						[
+							[0, 0],
+							[1, 1],
+						],
+					],
+				}),
+			);
+			assert.ok(
+				isGeometryPrimitive({
+					type: 'MultiPolygon',
+					coordinates: [
+						[
+							[
+								[0, 0],
+								[1, 0],
+								[1, 1],
+								[0, 0],
+							],
+						],
+					],
+				}),
+			);
+		});
+		test('rejects GeometryCollection', () => {
+			assert.ok(!isGeometryPrimitive(geometrycollection));
+		});
+		test('rejects container types', () => {
+			assert.ok(!isGeometryPrimitive(feature));
+			assert.ok(!isGeometryPrimitive(featurecollection));
+		});
+	});
+
+	describe('isStrictGeometryPrimitive', () => {
+		test('accepts in-range primitive geometries', () => {
+			assert.ok(isStrictGeometryPrimitive(point));
+			assert.ok(isStrictGeometryPrimitive(linestring));
+			assert.ok(isStrictGeometryPrimitive(polygon));
+		});
+		test('rejects out-of-range coordinates', () => {
+			assert.ok(
+				!isStrictGeometryPrimitive({
+					type: 'Point',
+					coordinates: [-181, 0],
+				}),
+			);
+		});
+		test('rejects GeometryCollection', () => {
+			assert.ok(!isStrictGeometryPrimitive(geometrycollection));
+		});
+	});
+});
+
 describe('Geometry', () => {
 	describe('isGeometry', () => {
-		test('accepts the six simple geometry types and isGeometryCollection', () => {
+		test('accepts the six coordinate-bearing geometry types and GeometryCollection', () => {
 			assert.ok(isGeometry(point));
 			assert.ok(isGeometry(linestring));
 			assert.ok(isGeometry(polygon));

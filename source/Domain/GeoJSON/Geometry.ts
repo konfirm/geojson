@@ -30,37 +30,48 @@ import {
 import { isPoint, isStrictPoint, type Point } from './Geometry/Point';
 import { isPolygon, isStrictPolygon, type Polygon } from './Geometry/Polygon';
 
-export type GeometryCollection<G extends Geometry = Geometry> = GeoJSONObject<{
-	type: 'GeometryCollection';
-	geometries: Array<G>;
-}>;
-
-export type Geometry =
+export type GeometryPrimitive =
 	| Point
 	| MultiPoint
 	| LineString
 	| MultiLineString
 	| Polygon
-	| MultiPolygon
-	| GeometryCollection;
+	| MultiPolygon;
 
-export const isGeometry = any<Geometry>(
+export const isGeometryPrimitive = any<GeometryPrimitive>(
 	isPoint,
 	isMultiPoint,
 	isLineString,
 	isMultiLineString,
 	isPolygon,
 	isMultiPolygon,
-	isGeometryCollection,
 );
 
-export const isStrictGeometry = any<Geometry>(
+export const isStrictGeometryPrimitive = any<GeometryPrimitive>(
 	isStrictPoint,
 	isStrictMultiPoint,
 	isStrictLineString,
 	isStrictMultiLineString,
 	isStrictPolygon,
 	isStrictMultiPolygon,
+);
+
+export type GeometryCollection<
+	G extends GeometryPrimitive = GeometryPrimitive,
+> = GeoJSONObject<{
+	type: 'GeometryCollection';
+	geometries: Array<G | GeometryCollection<G>>;
+}>;
+
+export type Geometry = GeometryPrimitive | GeometryCollection;
+
+export const isGeometry = any<Geometry>(
+	isGeometryPrimitive,
+	isGeometryCollection,
+);
+
+export const isStrictGeometry = any<Geometry>(
+	isStrictGeometryPrimitive,
 	isStrictGeometryCollection,
 );
 
@@ -74,18 +85,28 @@ const isStrictGeometryCollectionObject = all<GeometryCollection>(
 	isKeyOfType('geometries', isArrayOfType(isStrictGeometry)),
 );
 
-export function isGeometryCollection<G extends Geometry = Geometry>(
+export function isGeometryCollection<
+	G extends GeometryPrimitive = GeometryPrimitive,
+>(
 	value: unknown,
-	isG: Guard<G> = isGeometry,
-): value is GeometryCollection<G> {
-	return isGeometryCollectionObject(value) && value.geometries.every(isG);
-}
-
-export function isStrictGeometryCollection<G extends Geometry>(
-	value: unknown,
-	isG: Guard<G> = isStrictGeometry,
+	isG: Guard<G> = isGeometryPrimitive as Guard<G>,
 ): value is GeometryCollection<G> {
 	return (
-		isStrictGeometryCollectionObject(value) && value.geometries.every(isG)
+		isGeometryCollectionObject(value) &&
+		value.geometries.every((g) => isG(g) || isGeometryCollection(g, isG))
+	);
+}
+
+export function isStrictGeometryCollection<
+	G extends GeometryPrimitive = GeometryPrimitive,
+>(
+	value: unknown,
+	isG: Guard<G> = isStrictGeometryPrimitive as Guard<G>,
+): value is GeometryCollection<G> {
+	return (
+		isStrictGeometryCollectionObject(value) &&
+		value.geometries.every(
+			(g) => isG(g) || isStrictGeometryCollection(g, isG),
+		)
 	);
 }

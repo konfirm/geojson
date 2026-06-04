@@ -16,10 +16,13 @@ export { GeoJSON, isGeoJSON, isStrictGeoJSON } from './Domain/GeoJSON/GeoJSON';
 export {
 	Geometry,
 	GeometryCollection,
+	GeometryPrimitive,
 	isGeometry,
 	isGeometryCollection,
+	isGeometryPrimitive,
 	isStrictGeometry,
 	isStrictGeometryCollection,
+	isStrictGeometryPrimitive,
 } from './Domain/GeoJSON/Geometry';
 export {
 	isLineString,

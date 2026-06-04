@@ -4,7 +4,7 @@ import { type Altitude, isAltitude, isStrictAltitude } from './Altitude';
 import { isLatitude, isStrictLatitude, type Latitude } from './Latitude';
 import { isLongitude, isStrictLongitude, type Longitude } from './Longitude';
 
-export type Position = [Longitude, Latitude, Altitude?];
+export type Position = [Longitude, Latitude, Altitude?, ...Array<unknown>];
 export const isPosition = any<Position>(
 	isTuple(isLongitude, isLatitude),
 	isTuple(isLongitude, isLatitude, isAltitude),

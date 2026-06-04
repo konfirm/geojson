@@ -2,7 +2,7 @@
 
 ## Overview
 
-v2 contains three breaking changes and two additive changes. The breaking changes were made to align the library more closely with RFC 7946 and to surface incorrect behaviour that was previously silent.
+v2 contains five breaking changes and several additive changes. The breaking changes were made to align the library more closely with RFC 7946 and to surface incorrect behaviour that was previously silent.
 
 ---
 
@@ -113,7 +113,89 @@ distance(a, b, 'karney')
 
 ---
 
+### 4. `GeometryCollection` is now part of `Geometry`
+
+**What changed:** `GeometryCollection` is now included in the `Geometry` union type, and `isGeometry`/`isStrictGeometry` now return `true` for `GeometryCollection` values. Previously `GeometryCollection` was a separate type alongside `Geometry`.
+
+**Why:** RFC 7946 §3.1.8 is unambiguous: *"A GeoJSON object with type 'GeometryCollection' is a Geometry object."* The v1 separation was incorrect; fixing it also lets `Feature.geometry` be expressed correctly as `Geometry | null` rather than the awkward `Geometry | GeometryCollection`.
+
+**Impact:** Code with exhaustive checks over `Geometry` (e.g. a switch on `type`, or a chain of `isPoint` / `isLineString` / ... / `isPolygon` guards) will now have an unhandled case. Code that used `isGeometry` to reject `GeometryCollection` values will no longer work as expected.
+
+**How to fix:**
+
+If you need the v1 behaviour of `isGeometry` — matching only the six coordinate-bearing types — use the new `isGeometryPrimitive` guard instead:
+```ts
+import { isGeometryPrimitive } from '@konfirm/geojson';
+
+isGeometryPrimitive(value) // true for Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon
+                           // false for GeometryCollection
+```
+
+If you have an exhaustive switch or if-else chain over `geometry.type`, add a `GeometryCollection` branch:
+```ts
+switch (geometry.type) {
+    case 'Point': ...
+    case 'LineString': ...
+    // ... other cases ...
+    case 'GeometryCollection': ... // add this
+}
+```
+
+---
+
+### 5. `Feature.geometry` type now includes `null`
+
+**What changed:** The `Feature` type is now `Feature<G extends Geometry | null = Geometry | null>`, making `geometry` default to `Geometry | null`. In v1 the type was `Geometry | GeometryCollection` — never null — even though the runtime guards always accepted null geometry for unlocated features (RFC 7946 §3.2 explicitly allows it).
+
+**Why:** The type was lying. `isFeature({ type: 'Feature', properties: null, geometry: null })` returned `true` in v1, but the `Feature` type said geometry could never be null. The type now reflects what the guards always did.
+
+**Impact:** This is a **type-level breaking change only** — runtime behaviour is unchanged. TypeScript will now flag places where `feature.geometry` is used without a null check, since the type correctly admits null. Code that previously compiled cleanly under strict null checks may now get type errors.
+
+**How to fix:**
+
+Add a null check before using the geometry:
+```ts
+if (feature.geometry !== null) {
+    // geometry is Geometry here
+}
+```
+
+Or use a narrowed `Feature<Geometry>` type to explicitly opt out of null:
+```ts
+import { isFeature, isGeometry } from '@konfirm/geojson';
+
+isFeature(value, isGeometry) // value is Feature<Geometry> — geometry is never null
+```
+
+---
+
 ## Additive changes (no action required)
+
+### `GeometryPrimitive` type and guards
+
+The six coordinate-bearing geometry types — `Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon` — are now also available as a named union type `GeometryPrimitive`, with corresponding `isGeometryPrimitive` and `isStrictGeometryPrimitive` guards:
+
+```ts
+import { GeometryPrimitive, isGeometryPrimitive } from '@konfirm/geojson';
+
+isGeometryPrimitive(value) // true for the six types, false for GeometryCollection
+```
+
+This is primarily useful as a migration aid for code that relied on `isGeometry` excluding `GeometryCollection` (see breaking change 4), but it is also a useful concept in its own right.
+
+### `Position` accepts additional elements
+
+`Position` is now typed as `[Longitude, Latitude, Altitude?, ...Array<unknown>]`. RFC 7946 §3.1.1 states that additional position elements beyond the third MAY be present and MAY be ignored by parsers — the type now reflects this. Runtime behaviour of the guards is unchanged.
+
+### Generic type parameters on `Feature`, `FeatureCollection`, and `GeometryCollection`
+
+These types now accept an optional geometry type parameter. Bare usage is unchanged — defaults preserve existing behaviour. The type guards now also accept an optional geometry guard for narrowing:
+
+```ts
+isFeature(value, isPoint)              // value is Feature<Point>
+isFeatureCollection(value, isPolygon)  // value is FeatureCollection<Polygon>
+isGeometryCollection(value, isPoint)   // value is GeometryCollection<Point>
+```
 
 ### `karney` formula
 

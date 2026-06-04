@@ -17,13 +17,15 @@ import { isStrictPolygon, distance, karney } from '@konfirm/geojson';
 
 ## Upgrading to v2?
 
-Three breaking changes. Quick fixes below; the [full migration guide](./MIGRATION.md) has the details.
+Five breaking changes. Quick fixes below; the [full migration guide](./MIGRATION.md) has the details.
 
 | Change | v1 | v2 | Quick fix |
 |--------|----|----|-----------|
 | `distance()` default | `'cartesian'` | `'haversine'` | Pass `'cartesian'` explicitly, or `import { cartesian as distance }` |
 | `isStrictPolygon` winding | not enforced | RFC 7946 §3.1.6 (CCW exterior, CW interior) | Use `isPolygon` for loose validation |
 | `vincenty` near-antipodal | silent wrong result | throws `EvalError` | Catch the error, or switch to `'karney'` |
+| `Geometry` / `isGeometry` | excluded `GeometryCollection` | includes `GeometryCollection` | Use `isGeometryPrimitive` if you need the six coordinate-bearing types only |
+| `Feature.geometry` type | `Geometry \| GeometryCollection` (null never typed) | `Geometry \| null` (matches runtime) | Add null checks where `geometry` was assumed non-null; `isFeature(v, isGeometry)` narrows to non-null |
 
 On the winding: `isStrictPolygon` didn't check the one thing [RFC 7946](https://www.rfc-editor.org/rfc/rfc7946#section-3.1.6) says polygons MUST do — the winding. Counterclockwise for the outer ring, and clockwise for the inner rings (holes). To top it off, if it had checked, it would have been wrong anyway. Wrong formula, wrong data backing it up. That's on me — [read more on what happened, why I didn't notice, and what was done to prevent it](./docs/adr-winding-and-test-data.md).
 
