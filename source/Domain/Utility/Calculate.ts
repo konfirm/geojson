@@ -75,6 +75,7 @@ export function vincenty(
 	let cosSqα = 1; // α = azimuth of the geodesic at the equator
 	let λʹ = null;
 	let prevΔλ = Infinity;
+	let iterations = 0;
 
 	do {
 		sinλ = Math.sin(λ);
@@ -103,8 +104,8 @@ export function vincenty(
 						sinσ *
 						(cos2σₘ + C * cosσ * (-1 + 2 * cos2σₘ * cos2σₘ)));
 		const Δλ = Math.abs(λ - λʹ);
-		// λ has entered a 2-cycle: floating-point fixed point, will never converge
-		if (Δλ !== 0 && Δλ === prevΔλ)
+		// 2-cycle detection (floating-point fixed point) or hard iteration cap
+		if ((Δλ !== 0 && Δλ === prevΔλ) || ++iterations > 1000)
 			throw new EvalError('Vincenty formula failed to converge');
 		prevΔλ = Δλ;
 	} while (Math.abs(λ - λʹ) > 1e-12); // TV: 'iterate until negligible change in λ' (≈0.006mm)
