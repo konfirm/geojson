@@ -363,6 +363,10 @@ const simplified = [...new SimpleGeometryIterator(multipoint, geometrycollection
 */
 ```
 
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get started. To report a vulnerability, see [SECURITY.md](./SECURITY.md).
+
 ## License
 
 MIT License Copyright (c) 2021-2026 Rogier Spieker (Konfirm)
