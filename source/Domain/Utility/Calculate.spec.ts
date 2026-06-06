@@ -65,6 +65,15 @@ describe('Domain/Utility/Calculate', () => {
 			});
 		});
 
+		test('vincenty converges slowly for (0°,0°)→(0.5°,179.5°)', () => {
+			// Wikipedia "Vincenty's formulae § Nearly antipodal points":
+			// (0°,0°)→(0.5°,179.5°) requires ~130 iterations but converges; stated answer 19936288.579 m
+			assert.strictEqual(
+				getDistanceOfPointToPoint([0, 0], [179.5, 0.5], 'vincenty'),
+				19936288.578980867,
+			);
+		});
+
 		test('karney converges for near-antipodal points', () => {
 			// Wikipedia "Vincenty's formulae § Nearly antipodal points" gives
 			// the correct answers that Vincenty fails to compute:
