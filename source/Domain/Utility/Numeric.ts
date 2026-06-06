@@ -1,3 +1,7 @@
+export function squared(n: number): number {
+	return n * n;
+}
+
 export function bounds<T extends number>(
 	a: number,
 	b: number,

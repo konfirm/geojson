@@ -5,12 +5,17 @@ import * as Main from './main';
 const expectedExports = [
 	'SimpleGeometryIterator',
 	'distance',
+	'cartesian',
+	'haversine',
+	'karney',
+	'vincenty',
 	'intersect',
 	'isFeature',
 	'isFeatureCollection',
 	'isGeoJSON',
 	'isGeometry',
 	'isGeometryCollection',
+	'isGeometryPrimitive',
 	'isLineString',
 	'isMultiLineString',
 	'isMultiPoint',
@@ -23,6 +28,7 @@ const expectedExports = [
 	'isStrictGeoJSON',
 	'isStrictGeometry',
 	'isStrictGeometryCollection',
+	'isStrictGeometryPrimitive',
 	'isStrictLineString',
 	'isStrictMultiLineString',
 	'isStrictMultiPoint',
@@ -38,6 +44,7 @@ describe('main', () => {
 		const actual = Object.keys(Main)
 			.filter((k) => (Main as Record<string, unknown>)[k] !== undefined)
 			.sort();
+
 		assert.deepStrictEqual(actual, expectedExports);
 	});
 

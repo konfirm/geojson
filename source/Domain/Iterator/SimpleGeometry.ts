@@ -9,7 +9,7 @@ import type {
 import type { Feature } from '../GeoJSON/Feature';
 import type { FeatureCollection } from '../GeoJSON/FeatureCollection';
 import type { GeoJSON } from '../GeoJSON/GeoJSON';
-import type { GeometryCollection } from '../GeoJSON/GeometryCollection';
+import type { GeometryCollection } from '../GeoJSON/Geometry';
 
 type SimpleGeometry = Point | LineString | Polygon;
 type UnwrapGeometry = Exclude<GeoJSON, SimpleGeometry>;
@@ -67,14 +67,18 @@ const reducers: Reducer = {
 		}
 	},
 	*Feature({ geometry }: Feature, unwrap): Iterable<SimpleGeometry> {
-		yield* unwrap(geometry);
+		if (geometry) {
+			yield* unwrap(geometry);
+		}
 	},
 	*FeatureCollection(
 		{ features }: FeatureCollection,
 		unwrap,
 	): Iterable<SimpleGeometry> {
 		for (const { geometry } of features) {
-			yield* unwrap(geometry);
+			if (geometry) {
+				yield* unwrap(geometry);
+			}
 		}
 	},
 };
