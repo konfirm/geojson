@@ -1,14 +1,16 @@
 /**
- * Streams GeodTest.dat and compares cartesian / haversine / vincenty / karney
- * for accuracy (vs. file s12 ground truth) and performance across six distance bands.
+ * Streams GeodTest.dat and compares karney / vincenty / haversine / cartesian
+ * for accuracy (vs. GeographicLib C++ ground truth) and performance across distance bands.
  *
- * Outputs two Markdown tables ready to paste into the README.
+ * Outputs a single Markdown table: % of cases exceeding the threshold · mean µs/call.
+ * Karney is used as the benchmark (max deviation from C++ reference: ~11 nm).
  *
  * Data source: https://geographiclib.sourceforge.io/C++/doc/geodtest.html
  * Input search order: ./GeodTest.dat → ./GeodTest.dat.gz → remote SourceForge URL
  *
  * Usage:
  *   npm run compare:formulas
+ *   npm run compare:formulas -- --threshold <metres>   (default: 1)
  */
 import { createReadStream, existsSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
@@ -39,18 +41,25 @@ const CATEGORIES = [
 
 const ANTIPODAL_CATEGORIES = new Set<string>(['near-antipodal', 'antipodal-equatorial']);
 
-const FORMULAS = ['cartesian', 'haversine', 'vincenty', 'karney'] as const satisfies ReadonlyArray<
+const FORMULAS = ['karney', 'vincenty', 'haversine', 'cartesian'] as const satisfies ReadonlyArray<
 	Extract<PointToPointCalculation, string>
 >;
 
 type Formula = (typeof FORMULAS)[number];
 
 const DISTANCE_BANDS = [
+	{ name: '<1 m',         maxM: 1 },
+	{ name: '<10 m',        maxM: 10 },
+	{ name: '<100 m',       maxM: 100 },
 	{ name: '<1 km',        maxM: 1_000 },
+	{ name: '<10 km',       maxM: 10_000 },
+	{ name: '<25 km',       maxM: 25_000 },
+	{ name: '<50 km',       maxM: 50_000 },
 	{ name: '<100 km',      maxM: 100_000 },
 	{ name: '<1 000 km',    maxM: 1_000_000 },
 	{ name: '<10 000 km',   maxM: 10_000_000 },
-	{ name: '>10 000 km',   maxM: Infinity },
+	{ name: '<15 000 km',   maxM: 15_000_000 },
+	{ name: '>15 000 km',   maxM: Infinity },
 ] as const;
 
 type BandName = (typeof DISTANCE_BANDS)[number]['name'] | 'near-antipodal';
@@ -66,12 +75,13 @@ type Stats = {
 	sumErr: number;
 	sumTimeMs: number;
 	throws: number;
+	exceeds: number;
 };
 
 type AllStats = Record<BandName, Record<Formula, Stats>>;
 
 function emptyStats(): Stats {
-	return { count: 0, maxErr: 0, sumErr: 0, sumTimeMs: 0, throws: 0 };
+	return { count: 0, maxErr: 0, sumErr: 0, sumTimeMs: 0, throws: 0, exceeds: 0 };
 }
 
 function initStats(): AllStats {
@@ -81,6 +91,15 @@ function initStats(): AllStats {
 			Object.fromEntries(FORMULAS.map((f) => [f, emptyStats()])),
 		]),
 	) as AllStats;
+}
+
+function parseThreshold(): number {
+	const idx = process.argv.indexOf('--threshold');
+	if (idx !== -1) {
+		const val = Number(process.argv[idx + 1]);
+		if (!isNaN(val) && val > 0) return val;
+	}
+	return 100.0;
 }
 
 async function openLines(): Promise<ReturnType<typeof createInterface>> {
@@ -139,13 +158,14 @@ function bandForS12(s12: number): BandName {
 	for (const { name, maxM } of DISTANCE_BANDS) {
 		if (s12 < maxM) return name;
 	}
-	return '>10 000 km';
+	return '>15 000 km';
 }
 
 function fmtErr(m: number): string {
-	if (m < 0.001)   return `${(m * 1_000).toFixed(2)} mm`;
-	if (m < 1)       return `${m.toFixed(3)} m`;
-	if (m < 1_000)   return `${m.toFixed(1)} m`;
+	if (m < 1e-6)      return `${(m * 1e9).toFixed(0)} nm`;
+	if (m < 0.001)     return `${(m * 1_000).toFixed(2)} mm`;
+	if (m < 1)         return `${m.toFixed(3)} m`;
+	if (m < 1_000)     return `${m.toFixed(1)} m`;
 	if (m < 1_000_000) return `${(m / 1_000).toFixed(1)} km`;
 	return `${(m / 1_000_000).toFixed(0)} Mm`;
 }
@@ -156,29 +176,91 @@ function fmtTime(ms: number, n: number): string {
 	return us < 10 ? `${us.toFixed(2)} µs` : `${us.toFixed(1)} µs`;
 }
 
-function printTable(
-	title: string,
-	rowFn: (band: BandName, formula: Formula, s: Stats) => string,
-	allStats: AllStats,
-) {
-	const cols = FORMULAS.length;
-	const divider = `|${['---'].concat(Array(cols).fill('---')).join('|')}|`;
+const LAST_GOOD_PCT = 5;
 
-	console.log(`#### ${title}\n`);
-	console.log(`| Band | ${FORMULAS.join(' | ')} |`);
+function findLastGoodBand(allStats: AllStats, formula: Formula): BandName | null {
+	let lastGood: BandName | null = null;
+	let anyBad = false;
+
+	for (const band of ALL_BANDS) {
+		const s = allStats[band][formula];
+		if (s.count === 0) continue;
+		const wrongPct = ((s.throws + s.exceeds) / s.count) * 100;
+		if (wrongPct <= LAST_GOOD_PCT) {
+			lastGood = band;
+		} else {
+			anyBad = true;
+			break;
+		}
+	}
+
+	return anyBad ? lastGood : null;
+}
+
+function fmtCell(s: Stats, karneyStats?: Stats): string {
+	const ok = s.count - s.throws;
+	if (s.count === 0) return '—';
+
+	const wrong = s.throws + s.exceeds;
+	const pct   = wrong === 0
+		? 'none'
+		: `${((wrong / s.count) * 100).toFixed(1)}%`;
+
+	let speed: string;
+	if (!karneyStats || ok === 0) {
+		// karney itself, or a formula with no successful calls — show absolute
+		speed = fmtTime(s.sumTimeMs, ok);
+	} else {
+		const karneyOk = karneyStats.count - karneyStats.throws;
+		const karneyUs = karneyOk > 0 ? (karneyStats.sumTimeMs / karneyOk) * 1_000 : 0;
+		const formulaUs = (s.sumTimeMs / ok) * 1_000;
+		const ratio = karneyUs > 0 && formulaUs > 0 ? Math.round(karneyUs / formulaUs) : 0;
+		speed = `~${Math.max(1, ratio)}x`;
+	}
+
+	return `${pct} · ${speed}`;
+}
+
+function printTable(allStats: AllStats, threshold: number) {
+	// Karney summary across all bands
+	const karneyOk    = ALL_BANDS.reduce((n, b) => n + allStats[b].karney.count - allStats[b].karney.throws, 0);
+	const karneySum   = ALL_BANDS.reduce((n, b) => n + allStats[b].karney.sumErr, 0);
+	const karneyMax   = Math.max(...ALL_BANDS.map((b) => allStats[b].karney.maxErr));
+
+	const thresholdStr = fmtErr(threshold);
+
+	console.log(`This library's karney implementation matches Karney's own GeographicLib C++ reference within ${fmtErr(karneySum / karneyOk)} on average and ${fmtErr(karneyMax)} at worst, across ${karneyOk.toLocaleString()} test cases — close enough to use as the accuracy benchmark below.`);
+	console.log(`A result is counted as **wrong** when it deviates from the benchmark by more than ${thresholdStr}. Throws count as wrong too.`);
+	console.log(`Performance: karney shows absolute µs/call on this machine; other formulas show speed relative to karney (~Nx = N times faster) — ratios are more portable across machines than absolute times.`);
+	console.log(`Run your own numbers: \`npm run compare:formulas -- --threshold <metres>\` (current: ${threshold} m)\n`);
+
+	const header  = `| band | n | ${FORMULAS.join(' | ')} |`;
+	const divider = `| --- | ---: | ${FORMULAS.map(() => '---').join(' | ')} |`;
+
+	const lastGood = Object.fromEntries(
+		FORMULAS.map((f) => [f, findLastGoodBand(allStats, f)]),
+	) as Record<Formula, BandName | null>;
+
+	console.log(header);
 	console.log(divider);
 
 	for (const band of ALL_BANDS) {
-		const cells = FORMULAS.map((f) => rowFn(band, f, allStats[band][f]));
-		console.log(`| ${band} | ${cells.join(' | ')} |`);
+		const n     = allStats[band].karney.count;
+		const cells = FORMULAS.map((f) => {
+			const karneyStats = f === 'karney' ? undefined : allStats[band].karney;
+			const cell = fmtCell(allStats[band][f], karneyStats);
+			return lastGood[f] === band ? `**${cell}**` : cell;
+		});
+		console.log(`| ${band} | ${n.toLocaleString()} | ${cells.join(' | ')} |`);
 	}
 
 	console.log();
 }
 
 async function main() {
-	const allStats = initStats();
-	const rl = await openLines();
+	const threshold = parseThreshold();
+	const allStats  = initStats();
+	const rl        = await openLines();
 
 	for await (const { name: category, lines } of streamByCategory(rl, CATEGORIES)) {
 		process.stderr.write(`Processing ${category}...\n`);
@@ -199,7 +281,7 @@ async function main() {
 			const band = antipodal ? 'near-antipodal' : bandForS12(s12);
 
 			for (const formula of FORMULAS) {
-				const s = allStats[band][formula];
+				const s  = allStats[band][formula];
 				const t0 = performance.now();
 				let result: number;
 				try {
@@ -211,39 +293,17 @@ async function main() {
 				}
 				s.sumTimeMs += performance.now() - t0;
 				const err = Math.abs(result - s12);
-				if (err > s.maxErr) s.maxErr = err;
+				if (err > threshold) s.exceeds++;
+				if (err > s.maxErr)  s.maxErr = err;
 				s.sumErr += err;
 				s.count++;
 			}
 		}
 	}
 
-	process.stderr.write('Done. Writing tables...\n\n');
+	process.stderr.write('Done. Writing table...\n\n');
 
-	printTable(
-		'Accuracy — mean / max error vs. GeographicLib ground truth',
-		(band, formula, s) => {
-			const ok = s.count - s.throws;
-			if (s.count === 0) return '—';
-			if (ok === 0) return '**throws**';
-			const acc = `${fmtErr(s.sumErr / ok)} / ${fmtErr(s.maxErr)}`;
-			if (s.throws === 0) return acc;
-			const throwPct = ((s.throws / s.count) * 100).toFixed(0);
-			return `${throwPct}% throw; ${acc}`;
-		},
-		allStats,
-	);
-
-	printTable(
-		'Performance — mean µs per call',
-		(_, formula, s) => {
-			const ok = s.count - s.throws;
-			if (s.count === 0) return '—';
-			if (ok === 0) return '**throws**';
-			return fmtTime(s.sumTimeMs, ok);
-		},
-		allStats,
-	);
+	printTable(allStats, threshold);
 }
 
 main().catch((err) => {

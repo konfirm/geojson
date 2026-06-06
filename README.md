@@ -257,6 +257,31 @@ console.log(distance(a, b, 'cartesian')); // 8829424.604594177
 console.log(karney(a, b)); // 5863355.371221913 — same as distance(a, b, 'karney')
 ```
 
+#### Accuracy versus performance
+
+This library's karney implementation matches Karney's own GeographicLib C++ reference within 1 nm on average and 11 nm at worst, across 500,000 test cases — close enough to use as the accuracy benchmark below.
+A result is counted as **wrong** when it deviates from the benchmark by more than 10.0 m. Throws count as wrong too.
+
+Performance: karney shows absolute µs/call on this machine; other formulas show speed relative to karney (~Nx = N times faster) — ratios are more portable across machines than absolute times.
+
+| band | n | karney | vincenty | haversine | cartesian |
+| --- | ---: | --- | --- | --- | --- |
+| <1 m | 45 | none · 13.2 µs | none · ~23x | none · ~53x | **4.4% · ~86x** |
+| <10 m | 375 | none · 1.87 µs | none · ~4x | none · ~12x | 14.4% · ~20x |
+| <100 m | 3,980 | none · 1.84 µs | none · ~4x | none · ~12x | 42.9% · ~20x |
+| <1 km | 40,523 | none · 2.00 µs | none · ~4x | none · ~13x | 73.0% · ~21x |
+| <10 km | 5,125 | none · 2.18 µs | none · ~4x | **0.3% · ~14x** | 81.3% · ~22x |
+| <25 km | 78 | none · 2.41 µs | none · ~4x | 96.2% · ~12x | 96.2% · ~20x |
+| <50 km | 108 | none · 2.68 µs | none · ~4x | 97.2% · ~14x | 98.1% · ~23x |
+| <100 km | 239 | none · 2.20 µs | none · ~4x | 99.6% · ~13x | 99.6% · ~24x |
+| <1 000 km | 5,371 | none · 2.32 µs | none · ~4x | 99.9% · ~14x | 99.9% · ~25x |
+| <10 000 km | 119,455 | none · 2.90 µs | none · ~4x | 100.0% · ~14x | 100.0% · ~30x |
+| <15 000 km | 77,875 | none · 3.06 µs | **none · ~4x** | 100.0% · ~16x | 100.0% · ~31x |
+| >15 000 km | 146,826 | none · 2.68 µs | 19.8% · ~4x | 100.0% · ~14x | 100.0% · ~27x |
+| near-antipodal | 100,000 | none · 3.25 µs | 34.9% · ~1x | 99.9% · ~18x | 100.0% · ~31x |
+
+Run your own numbers: `npm run compare:formulas -- --threshold <metres>` (current: 10 m)
+
 ### SimpleGeometryIterator
 
 The SimpleGeometryIterator class is a helper utility that flattens any GeoJSON input — including nested `FeatureCollection` and `GeometryCollection` — into a flat sequence of simple geometries (`Point`, `LineString`, `Polygon`). Multi-geometry types are split into their individual components. The original structure is never modified and no intermediate arrays are built.
