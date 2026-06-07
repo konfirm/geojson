@@ -54,7 +54,7 @@ This is useful if you need to keep the original `distance` name in scope for oth
 
 **While you are here — consider switching to a better formula:**
 
-If you are using `cartesian` for performance, note that `haversine` is only a few microseconds slower per call and orders of magnitude more accurate. Unless you are calculating distances within a few hundred metres near the equator, `haversine` is the right choice. For near-antipodal inputs — points on nearly opposite sides of the Earth — or when every nanometre counts, use `karney`.
+f you’re using `'cartesian'` for performance, note that `'haversine'` is only a few microseconds slower per call and orders of magnitude more accurate. Unless you’re calculating distances within a few hundred meters near the equator, `'haversine'` is the right choice. For near-antipodal inputs—points on nearly opposite sides of the Earth—or when every nanometer counts, use `'karney'`.
 
 ---
 
