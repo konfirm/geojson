@@ -105,6 +105,19 @@ describe('GeometryCollection', () => {
 				),
 			);
 		});
+
+		test('accepts a double nested GeometryCollection where all geometries match the strict guard', () => {
+			const strictWrapperCollection = {
+				type: 'GeometryCollection',
+				geometries: [strictPolygonCollection],
+			};
+			assert.ok(
+				isStrictGeometryCollection(
+					strictWrapperCollection,
+					isStrictPolygon,
+				),
+			);
+		});
 		test('rejects a GeometryCollection where any geometry fails the strict guard', () => {
 			assert.ok(
 				!isStrictGeometryCollection(
