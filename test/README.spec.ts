@@ -28,11 +28,11 @@ describe('README - distance', () => {
 		geometry: { type: 'Point', coordinates: [-73.778889, 40.639722] },
 	};
 
-	test('cartesian (default)', () => {
-		assert.strictEqual(distance(ams, jfk), 8829424.604594177);
+	test('cartesian', () => {
 		assert.strictEqual(distance(ams, jfk, 'cartesian'), 8829424.604594177);
 	});
-	test('haversine', () => {
+	test('haversine (default)', () => {
+		assert.strictEqual(distance(ams, jfk), 5847546.425707642);
 		assert.strictEqual(distance(ams, jfk, 'haversine'), 5847546.425707642);
 	});
 	test('vincenty', () => {

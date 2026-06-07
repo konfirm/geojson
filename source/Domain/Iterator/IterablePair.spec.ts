@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Feature } from '../GeoJSON/Feature';
 import type { FeatureCollection } from '../GeoJSON/FeatureCollection';
+import type { GeometryCollection } from '../GeoJSON/Geometry';
 import type { LineString } from '../GeoJSON/Geometry/LineString';
 import type { MultiLineString } from '../GeoJSON/Geometry/MultiLineString';
 import type { MultiPoint } from '../GeoJSON/Geometry/MultiPoint';
 import type { MultiPolygon } from '../GeoJSON/Geometry/MultiPolygon';
 import type { Point } from '../GeoJSON/Geometry/Point';
 import type { Polygon } from '../GeoJSON/Geometry/Polygon';
-import type { GeometryCollection } from '../GeoJSON/GeometryCollection';
 import * as Export from './IterablePair';
 import { SimpleGeometryIterator } from './SimpleGeometry';
 

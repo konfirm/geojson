@@ -8,7 +8,7 @@ describe('Distance — all geometry type combinations', () => {
 	test('matches expected distances for all shape pairs and formulas', () => {
 		for (const { a, b, cartesian, haversine, vincenty } of shapes) {
 			const label = `${explain(a)} → ${explain(b)}`;
-			assert.strictEqual(distance(a, b), cartesian, `default ${label}`);
+			assert.strictEqual(distance(a, b), haversine, `default ${label}`);
 			assert.strictEqual(distance(a, b, 'cartesian'), cartesian, `cartesian ${label}`);
 			assert.strictEqual(distance(a, b, 'haversine'), haversine, `haversine ${label}`);
 			assert.strictEqual(distance(a, b, 'vincenty'), vincenty, `vincenty ${label}`);

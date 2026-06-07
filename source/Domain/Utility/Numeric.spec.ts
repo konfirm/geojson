@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
 import type { Improbability } from '../../../test/helper/spec';
-import { bounds } from './Numeric';
+import { bounds, squared } from './Numeric';
 
 const LON = 5.911738872528076;
 const LON_MINUS_ONE_CYCLE = -354.0882611274719;
@@ -13,6 +13,23 @@ const LAT_MINUS_ONE_CYCLE = -128.02503229955042;
 const LAT_PLUS_ONE_CYCLE = 231.97496770044958;
 
 describe('Domain/Utility/Numeric', () => {
+	describe('squared', () => {
+		test('returns x²', () => {
+			each`
+				x       | result
+				--------|---
+				${0}    | ${0}
+				${1}    | ${1}
+				${-1}   | ${1}
+				${2}    | ${4}
+				${0.5}  | ${0.25}
+				${-3}   | ${9}
+			`(({ x, result }: Improbability) => {
+				assert.strictEqual(squared(Number(x)), Number(result));
+			});
+		});
+	});
+
 	describe('bounds', () => {
 		test('rotates values into range', () => {
 			each`
