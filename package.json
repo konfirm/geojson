@@ -1,6 +1,6 @@
 {
 	"name": "@konfirm/geojson",
-	"version": "1.0.1",
+	"version": "2.0.0-beta.0",
 	"description": "TypeScript-first GeoJSON validation, intersection, and geodesic distance — RFC 7946 compliant",
 	"main": "dist/main.js",
 	"module": "dist/main.mjs",
@@ -23,8 +23,10 @@
 		"test": "npm run test:unit && npm run test:integration",
 		"test:unit": "node --require ./test.register.cjs --test 'source/**/*.spec.ts'",
 		"test:integration": "node --require ./test.register.cjs --test 'test/**/*.spec.ts'",
-		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
-		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r html -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
+		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.ts'",
+		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r text html-spa -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.ts'",
+		"test:geodesic": "node --require ./test.register.cjs test/Domain/Utility/Geodesic.spec.stream.ts",
+		"compare:formulas": "node --require ./test.register.cjs scripts/geodtest-compare.ts",
 		"build": "tsup",
 		"lint": "biome lint",
 		"format": "biome format",
@@ -58,6 +60,7 @@
 	"author": "Rogier Spieker <rogier+npm@konfirm.eu>",
 	"license": "MIT",
 	"devDependencies": {
+		"@konfirm/guard": "^2.0.0",
 		"@biomejs/biome": "^2.4.16",
 		"@commitlint/config-conventional": "^20.5.3",
 		"@release-it/conventional-changelog": "^10.0.6",
@@ -94,8 +97,5 @@
 				"infile": "CHANGELOG.md"
 			}
 		}
-	},
-	"dependencies": {
-		"@konfirm/guard": "^2.0.0"
 	}
 }

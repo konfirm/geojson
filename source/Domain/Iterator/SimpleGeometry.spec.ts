@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Feature } from '../GeoJSON/Feature';
 import type { FeatureCollection } from '../GeoJSON/FeatureCollection';
+import type { GeometryCollection } from '../GeoJSON/Geometry';
 import type { LineString } from '../GeoJSON/Geometry/LineString';
 import type { MultiLineString } from '../GeoJSON/Geometry/MultiLineString';
 import type { MultiPoint } from '../GeoJSON/Geometry/MultiPoint';
 import type { MultiPolygon } from '../GeoJSON/Geometry/MultiPolygon';
 import type { Point } from '../GeoJSON/Geometry/Point';
 import type { Polygon } from '../GeoJSON/Geometry/Polygon';
-import type { GeometryCollection } from '../GeoJSON/GeometryCollection';
 import * as Export from './SimpleGeometry';
 
 const { SimpleGeometryIterator } = Export;
@@ -319,6 +319,24 @@ describe('Domain/Iterator/SimpleGeometryIterator', () => {
 					featurecollection,
 				),
 			],
+			expected,
+		);
+	});
+
+	test('Feature with null geometry do not yield (nor throw)', () => {
+		const expected: Array<unknown> = [];
+		const feature: Feature = {
+			type: 'Feature',
+			geometry: null,
+			properties: null,
+		};
+		const featurecollection: FeatureCollection = {
+			type: 'FeatureCollection',
+			features: [feature],
+		};
+
+		assert.deepStrictEqual(
+			[...new SimpleGeometryIterator(featurecollection, feature)],
 			expected,
 		);
 	});

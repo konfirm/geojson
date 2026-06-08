@@ -3,7 +3,108 @@
 
 # @konfirm/geojson
 
-GeoJSON validation, iteration, intersection and distance calculation.
+GeoJSON is a standard format for encoding geographic data structures — points, lines, polygons — as JSON. It was formalized in [RFC 7946](https://www.rfc-editor.org/rfc/rfc7946) in 2016, which introduced requirements (like winding order for polygon rings) that many tools still don't enforce.
+> This TypeScript-first library gives you strict RFC 7946 validation and relaxed structural checks — so you can choose the right level of correctness for your data — along with geodesic distance across four formulas, intersection testing, and geometry iteration.
+
+## Installation and usage
+
+```sh
+npm install @konfirm/geojson
+```
+
+```ts
+import { isGeoJSON, isStrictGeoJSON, distance, karney } from '@konfirm/geojson';
+```
+
+## What @konfirm/geojson offers
+
+**Types.** All RFC 7946 GeoJSON types (`Point`, `LineString`, `Polygon`, their `Multi*` variants, `GeometryCollection`, `Feature`, `FeatureCollection`) are exported as TypeScript types. `Feature<G>`, `FeatureCollection<G>`, and `GeometryCollection<G>` are generic so you can narrow the geometry type at compile time.
+
+**Validation.** Every type has two guards: `is*` checks structure (is this a valid GeoJSON object at all?), and `isStrict*` also checks coordinate ranges and RFC 7946 (§3.1.6) winding order. You pick the tier; you can use both in the same codebase.
+
+```ts
+import { isGeoJSON, isStrictGeoJSON } from '@konfirm/geojson';
+
+isGeoJSON(value)       // structural check — coordinates in bounds? irrelevant.
+isStrictGeoJSON(value) // also checks ranges and CCW/CW winding per RFC 7946
+```
+
+**Distance.** Geodesic distance between any two GeoJSON objects (not just points) across four formulas. `haversine` covers most use cases. `karney` always converges.
+
+**Intersection.** Boolean intersection test across all geometry type combinations (`Point`, `LineString`, `Polygon` and their `Multi*` and `Feature`/`FeatureCollection` wrappers).
+
+**Iteration.** `SimpleGeometryIterator` flattens any GeoJSON — including nested `GeometryCollection` and `FeatureCollection` — into a sequence of simple `Point`, `LineString`, and `Polygon` geometries.
+
+## Upgrading to v2?
+
+**What's new:**
+- `karney` — fourth distance formula; always converges, ~15 nm accuracy on WGS84, including near-antipodal inputs
+- Generic `Feature<G>`, `FeatureCollection<G>`, `GeometryCollection<G>` — narrow the geometry type at compile time by passing a guard: `isFeature(value, isPoint)` → `value is Feature<Point>`
+- Named formula exports — `cartesian`, `haversine`, `vincenty`, `karney` as standalone `(GeoJSON, GeoJSON) => number` functions for direct use and tree-shaking
+- RFC 7946 winding enforcement in `isStrictPolygon` and `isStrictMultiPolygon` — was silently skipped in v1
+
+Five breaking changes. Quick fixes below; the [full migration guide](./MIGRATION.md) has the details.
+
+| Change | v1 | v2 | Quick fix |
+|--------|----|----|-----------|
+| `distance()` default | `'cartesian'` | `'haversine'` | Pass `'cartesian'` explicitly, or `import { cartesian as distance }` |
+| `isStrictPolygon` winding | not enforced | RFC 7946 §3.1.6 (CCW exterior, CW interior) | Use `isPolygon` for loose validation |
+| `vincenty` near-antipodal | silent wrong result | throws `EvalError` | Catch the error, or switch to `'karney'` |
+| `Geometry` / `isGeometry` | excluded `GeometryCollection` | includes `GeometryCollection` | Use `isGeometryPrimitive` if you need the six coordinate-bearing types only |
+| `Feature.geometry` type | `Geometry \| GeometryCollection` (null never typed) | `Geometry \| null` (matches runtime) | Add null checks where `geometry` was assumed non-null; `isFeature(v, isGeometry)` narrows to non-null |
+
+On the winding: `isStrictPolygon` didn't check the one thing [RFC 7946](https://www.rfc-editor.org/rfc/rfc7946#section-3.1.6) says polygons MUST do — the winding. Counterclockwise for the outer ring, and clockwise for the inner rings (holes). To top it off, if it had checked, it would have been wrong anyway. Wrong formula, wrong data backing it up. That's on me — [read more on what happened, why I didn't notice, and what was done to prevent it](./docs/adr-winding-and-test-data.md).
+
+**The most likely change you need to make** is the `distance()` default. If you had:
+
+```ts
+import { distance } from '@konfirm/geojson';
+distance(pointA, polygonB);
+```
+
+you are getting a better answer now. Don't want that? Pick your fix:
+
+```ts
+// explicit at the call site
+distance(pointA, polygonB, 'cartesian');
+
+// or: import the formula directly — zero call-site changes
+import { cartesian as distance } from '@konfirm/geojson';
+distance(pointA, polygonB);
+```
+
+Either way, [ask yourself whether `cartesian` is actually what you want](./MIGRATION.md#1-distance-default-formula-changed-from-cartesian-to-haversine) — for real-world coordinates it can be off by more than 50%.
+
+## Why this over...?
+
+The one thing most GeoJSON validators skip is winding order. [RFC 7946 §3.1.6](https://www.rfc-editor.org/rfc/rfc7946#section-3.1.6) says polygon exterior rings **must** be counterclockwise and interior rings (holes) clockwise — but virtually no public library enforces this. `isStrictPolygon` is one of the very few that does.
+
+This has a concrete consequence: [Natural Earth](https://www.naturalearthdata.com/), the de-facto standard country dataset, [uses the opposite convention](https://github.com/nvkelso/natural-earth-vector/issues/885) and fails strict validation. That is a feature, not a bug — `isPolygon` accepts it, `isStrictPolygon` rejects it. The split lets you choose strictness without switching libraries.
+
+| | this | @types/geojson | geojson-validation | @mapbox/geojsonhint | @mapbox/geojson-rewind | @turf/turf |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| TypeScript types | ✓ | ✓ | — | — | — | ✓ |
+| Structural (loose) validation | ✓ | — | ✓ | ✓ | — | — |
+| Strict validation (ranges + winding) | ✓ | — | — | — | — | — |
+| Validation failure reasons | — | — | ✓ | ✓ | — | — |
+| RFC 7946 winding enforcement | ✓ | — | — | — | — | — |
+| Winding correction | — | — | — | — | ✓¹ | — |
+| Intersection testing | ✓ | — | — | — | — | ✓ |
+| Haversine distance | ✓ | — | — | — | — | ✓ |
+| Vincenty distance | ✓ | — | — | — | — | — |
+| Karney distance (always converges, ~15 nm) | ✓ | — | — | — | — | — |
+| Spatial ops (buffer, union, simplify, …) | — | — | — | — | — | ✓ |
+| CLI | — | — | ✓ | ✓ | ✓ | — |
+| Zero runtime dependencies | ✓ | ✓ | ✓ | — | — | — |
+| Active maintenance | ✓ | ✓ | — | ✓ | ✓ | ✓ |
+
+¹ `@mapbox/geojson-rewind` defaults to clockwise exterior — the pre-RFC 7946 convention. To match RFC 7946 you must pass `rewind(geojson, false)` explicitly.
+
+**When you should use something else instead:**
+
+- Need spatial operations — buffer, union, difference, simplify, Voronoi, clustering? Use [Turf](https://turfjs.org/). It is a far broader library and this package does not compete with it.
+- Need to know *why* a value failed — which ring, which coordinate, which rule? [`geojson-validation`](https://www.npmjs.com/package/geojson-validation) and [`@mapbox/geojsonhint`](https://www.npmjs.com/package/@mapbox/geojsonhint) return error strings; this package returns `boolean`.
+- Need a CLI to lint GeoJSON files? Neither does this package; `geojsonhint` is the right tool for that.
 
 ## API
 
@@ -20,20 +121,22 @@ All [GeoJSON types](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1) a
 | MultiLineString    | A [GeoJSON MultiLineString](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.5)    | The `coordinates` property is an array of`LineString` coordinates                                                                                                                                       |
 | Polygon            | A [GeoJSON Polygon](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.6)            | The `coordinates` property is an array of "LinearRings" (closed `LineString` coordinates, where the first and last `Position` are identical)                                                            |
 | MultiPolygon       | A [GeoJSON MultiPolygon](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.7)       | The `coordinates` property is an array of `Polygon` coordinate arrays                                                                                                                                   |
-| GeometryCollection | A [GeoJSON GeometryCollection](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.8) | geometries is an array of Geometries (`Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon`)                                                                                |
-| Feature            | A [GeoJSON Feature](https://datatracker.ietf.org/doc/html/rfc7946#section-3.2)              | A spatially bounded 'Thing', consisting of a `geometry` property (`Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon`, `GeometryCollection`) with additional `properties` |
-| FeatureCollection  | A [GeoJSON Collection](https://datatracker.ietf.org/doc/html/rfc7946#section-3.3)           | The `features` property is an array of `Feature` objects                                                                                                                                                |
+| GeometryCollection | A [GeoJSON GeometryCollection](https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.8) | `geometries` is an array of Geometries (`Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon`). Generic: `GeometryCollection<G extends Geometry>`                          |
+| Feature            | A [GeoJSON Feature](https://datatracker.ietf.org/doc/html/rfc7946#section-3.2)              | A spatially bounded thing with a `geometry` (`Geometry \| null`) and `properties`. Generic: `Feature<G extends Geometry \| null>`                                                                      |
+| FeatureCollection  | A [GeoJSON Collection](https://datatracker.ietf.org/doc/html/rfc7946#section-3.3)           | The `features` property is an array of `Feature` objects. Generic: `FeatureCollection<G extends Geometry \| null>`                                                                                     |
+| Geometry           | — (union type)                                                                               | Union of all geometry types including `GeometryCollection`. Use `GeometryPrimitive` when you need only the six coordinate-bearing types.                                                                |
+| GeometryPrimitive  | — (union type)                                                                               | The six coordinate-bearing geometry types: `Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon`. Excludes `GeometryCollection`.                                            |
 
 
 ### Type Guards
 
-Most of the exported functionality is based on validation of GeoJSON objects, validating required and optional (if provided) properties. 
+Most of the exported functionality is based on validation of GeoJSON objects, validating required and optional (if provided) properties.
 The `isStrict*` variants of the type guards also validate the following:
  - `Longitude` is a number in the range (inclusive) `-180..180`
  - `Latitude` is a number in the range (inclusive) `-90..90`
  - `Altitude` is a number in the range (inclusive) `-6371008.7714..20180000` (Earth center(-ish) up to the GPS satelite distance)
  - `Polygon` "LinearRing" are closed (first and last `Position` are identical)
- - ~~`Polygon` "LinearRing" have the correct winding (counterclockwise for exterior rings (outline), clockwise for interior rings (holes))~~ _(not yet enforced — planned for v2)_
+ - `Polygon` "LinearRing" have the correct winding per RFC 7946 (§3.1.6): counterclockwise for exterior rings, clockwise for interior rings (holes)
 
 
 | type               | guard                  | strict guard                 | description                                                                                                        |
@@ -46,7 +149,8 @@ The `isStrict*` variants of the type guards also validate the following:
 | Polygon            | `isPolygon`            | `isStrictPolygon`            | validate whether the input is valid GeoJSON Polygon                                                                |
 | MultiPolygon       | `isMultiPolygon`       | `isStrictMultiPolygon`       | validate whether the input is valid GeoJSON MultiPolygon                                                           |
 | GeometryCollection | `isGeometryCollection` | `isStrictGeometryCollection` | validate whether the input is valid GeoJSON GeometryCollection                                                     |
-| Geometry           | `isGeometry`           | `isStrictGeometry`           | validate whether the input is valid GeoJSON Geometry (`Point`, `LineString`, `Polygon` or their `Multi*` variants) |
+| Geometry           | `isGeometry`           | `isStrictGeometry`           | validate whether the input is any valid GeoJSON Geometry, including `GeometryCollection`                           |
+| GeometryPrimitive  | `isGeometryPrimitive`  | `isStrictGeometryPrimitive`  | validate whether the input is one of the six coordinate-bearing geometry types (excludes `GeometryCollection`)     |
 | Feature            | `isFeature`            | `isStrictFeature`            | validate whether the input is valid GeoJSON Feature                                                                |
 | FeatureCollection  | `isFeatureCollection`  | `isStrictFeatureCollection`  | validate whether the input is valid GeoJSON FeatureCollection                                                      |
 | GeoJSON            | `isGeoJSON`            | `isStrictGeoJSON`            | validate the input to be valid GeoJSON                                                                             |
@@ -61,6 +165,30 @@ const point: Point = {
 
 console.log('the point is a GeoJSON Point', isPoint(point)); // true, as the structure is up to specification
 console.log('the point is a strict GeoJSON Point', isStrictPoint(point)); // false, as the coordinates are not within the specified ranges
+```
+
+#### Generics and narrowing
+
+`Feature<G>`, `FeatureCollection<G>`, and `GeometryCollection<G>` are generic. The corresponding guards accept an optional second argument — a geometry guard — to narrow the inferred type:
+
+```ts
+import { isFeature, isFeatureCollection, isGeometryCollection, isPoint, isStrictPoint } from '@konfirm/geojson';
+
+// Without a guard: value is Feature<Geometry | null>
+isFeature(value);
+
+// With a guard: value is Feature<Point>
+isFeature(value, isPoint);
+
+// Works with strict guards and custom guards too
+isFeature(value, isStrictPoint);                     // value is Feature<Point> (strict coordinates)
+isFeatureCollection(value, isPoint);                 // value is FeatureCollection<Point>
+isGeometryCollection(value, isPoint);                // value is GeometryCollection<Point>
+
+// The strict variants of the three guards accept the same optional narrowing argument
+isStrictFeature(value, isStrictPoint);               // value is Feature<Point>
+isStrictFeatureCollection(value, isStrictPoint);     // value is FeatureCollection<Point>
+isStrictGeometryCollection(value, isStrictPoint);    // value is GeometryCollection<Point>
 ```
 
 ### intersect
@@ -93,47 +221,70 @@ console.log('feature intersects point', intersect(feature, point)); // true
 
 ### distance
 
-Obtain the (shortest) distance in meters between two GeoJSON objects. There are three formulas which can be used:
+Obtain the (shortest) distance in meters between two GeoJSON objects. Choose a formula based on your use case:
 
- - `cartesian` (default), calculates the distance between coordinates using the Pythagorean equation, this is the fastest formula at the cost of (huge amount of) accuracy
- - `haversine`, calculates the distance between coordinates using the [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula), improves the accuracy to a level which is probably suitable for most needs with a decent performance
- - `vincenty`, calculates the distance between coordinates using the [Vincenty's formula](https://en.wikipedia.org/wiki/Vincenty%27s_formulae), the most accurate but the least performant algorithm.
+ - `haversine` (**default**) — geographic lon/lat coordinates, most use cases; good accuracy, good performance
+ - `vincenty` — when you need higher accuracy than haversine and can guarantee inputs are not near-antipodal — points on nearly opposite sides of the Earth — (throws for those)
+ - `karney` — when correctness is unconditional: near-antipodal inputs, or when you simply cannot afford a wrong answer; ~15 nm accuracy on WGS84
+ - `cartesian` — when coordinates are in a metric projected system (e.g. RD New / EPSG:28992, UTM) where Euclidean distance is correct; note that projected coordinates are not valid strict GeoJSON (RFC 7946 requires geographic lon/lat, WGS84) — **do not use for geographic coordinates**
 
-Usage: `distance(<Geometry(Collection)|Feature(Collection)>, <Geometry(Collection)|Feature(Collection)> [, <'cartesian'|'haversine'|'vincenty'>]): number`
+Each formula is also exported as a standalone function for direct use and better tree-shaking.
+
+The formula argument accepts either a string or a custom `(a: Position, b: Position) => number` function — useful when you need a projection-specific calculation or want to plug in your own formula. The `PointToPointCalculation` type covers both and is exported for use in typed wrapper functions.
+
+Usage: `distance(<GeoJSON>, <GeoJSON> [, <PointToPointCalculation>]): number`
 
 ```ts
-import { distance, Feature } from '@konfirm/geojson';
+import { distance, karney, Feature } from '@konfirm/geojson';
 
-    const a: Feature = {
-        type: 'Feature',
-        properties: {
-            name: 'Schiphol Airport, Amsterdam',
-        },
-        geometry: {
-            type: 'Point',
-            coordinates: [4.763889, 52.308333],
-        },
-    };
-    const b: Feature = {
-        type: 'Feature',
-        properties: {
-            name: 'John F. Kennedy International Airport, New York',
-        },
-        geometry: {
-            type: 'Point',
-            coordinates: [-73.778889, 40.639722],
-        },
-    };
+const a: Feature = {
+    type: 'Feature',
+    properties: { name: 'Schiphol Airport, Amsterdam' },
+    geometry: { type: 'Point', coordinates: [4.763889, 52.308333] },
+};
+const b: Feature = {
+    type: 'Feature',
+    properties: { name: 'John F. Kennedy International Airport, New York' },
+    geometry: { type: 'Point', coordinates: [-73.778889, 40.639722] },
+};
 
-    console.log(distance(a, b));              // 8829424.604594177 ('cartesian' is the default)
-    console.log(distance(a, b, 'cartesian')); // 8829424.604594177
-    console.log(distance(a, b, 'haversine')); // 5847546.425707642
-    console.log(distance(a, b, 'vincenty'));  // 5863355.371234315
+console.log(distance(a, b));              // 5847546.425707642 ('haversine' is the default)
+console.log(distance(a, b, 'haversine')); // 5847546.425707642
+console.log(distance(a, b, 'vincenty'));  // 5863355.371234315
+console.log(distance(a, b, 'karney'));    // 5863355.371221913
+console.log(distance(a, b, 'cartesian')); // 8829424.604594177
+
+console.log(karney(a, b)); // 5863355.371221913 — same as distance(a, b, 'karney')
 ```
+
+#### Accuracy versus performance
+
+This library's karney implementation matches Karney's own GeographicLib C++ reference within 1 nm on average and 11 nm at worst, across 500,000 test cases — close enough to use as the accuracy benchmark below.
+A result is counted as **wrong** when it deviates from the benchmark by more than 10.0 m. Throws count as wrong too.
+
+Performance: karney shows absolute µs/call on this machine; other formulas show speed relative to karney (~Nx = N times faster) — ratios are more portable across machines than absolute times.
+
+| band | n | karney | vincenty | haversine | cartesian |
+| --- | ---: | --- | --- | --- | --- |
+| <1 m | 45 | none · 13.2 µs | none · ~23x | none · ~53x | **4.4% · ~86x** |
+| <10 m | 375 | none · 1.87 µs | none · ~4x | none · ~12x | 14.4% · ~20x |
+| <100 m | 3,980 | none · 1.84 µs | none · ~4x | none · ~12x | 42.9% · ~20x |
+| <1 km | 40,523 | none · 2.00 µs | none · ~4x | none · ~13x | 73.0% · ~21x |
+| <10 km | 5,125 | none · 2.18 µs | none · ~4x | **0.3% · ~14x** | 81.3% · ~22x |
+| <25 km | 78 | none · 2.41 µs | none · ~4x | 96.2% · ~12x | 96.2% · ~20x |
+| <50 km | 108 | none · 2.68 µs | none · ~4x | 97.2% · ~14x | 98.1% · ~23x |
+| <100 km | 239 | none · 2.20 µs | none · ~4x | 99.6% · ~13x | 99.6% · ~24x |
+| <1 000 km | 5,371 | none · 2.32 µs | none · ~4x | 99.9% · ~14x | 99.9% · ~25x |
+| <10 000 km | 119,455 | none · 2.90 µs | none · ~4x | 100.0% · ~14x | 100.0% · ~30x |
+| <15 000 km | 77,875 | none · 3.06 µs | **none · ~4x** | 100.0% · ~16x | 100.0% · ~31x |
+| >15 000 km | 146,826 | none · 2.68 µs | 19.8% · ~4x | 100.0% · ~14x | 100.0% · ~27x |
+| near-antipodal | 100,000 | none · 3.25 µs | 34.9% · ~1x | 99.9% · ~18x | 100.0% · ~31x |
+
+Run your own numbers: `npm run compare:formulas -- --threshold <metres>` (current: 10 m)
 
 ### SimpleGeometryIterator
 
-The SimpleGeometryIterator class is a convenience helper utility which yields all simple Geometric shapes (`Point`, `LineString`, `Polygon`) from any GeoJSON object. Using a SimpleGeometryIterator allows you to focus on just implementing logic for the simple Geometric shapes whilst supporting any combination of GeoJSON objects as input.
+The SimpleGeometryIterator class is a helper utility that flattens any GeoJSON input — including nested `FeatureCollection` and `GeometryCollection` — into a flat sequence of simple geometries (`Point`, `LineString`, `Polygon`). Multi-geometry types are split into their individual components. The original structure is never modified and no intermediate arrays are built.
 
 | input type           | yields type(s)                     | description                                                                              |
 | -------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -237,9 +388,13 @@ const simplified = [...new SimpleGeometryIterator(multipoint, geometrycollection
 */
 ```
 
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get started. To report a vulnerability, see [SECURITY.md](./SECURITY.md).
+
 ## License
 
-MIT License Copyright (c) 2021-2023 Rogier Spieker (Konfirm)
+MIT License Copyright (c) 2021-2026 Rogier Spieker (Konfirm)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

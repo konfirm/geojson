@@ -4,7 +4,7 @@ import { LineString } from "../../source/Domain/GeoJSON/Geometry/LineString";
 import { MultiLineString } from "../../source/Domain/GeoJSON/Geometry/MultiLineString";
 import { Polygon } from "../../source/Domain/GeoJSON/Geometry/Polygon";
 import { MultiPolygon } from "../../source/Domain/GeoJSON/Geometry/MultiPolygon";
-import { GeometryCollection } from "../../source/Domain/GeoJSON/GeometryCollection";
+import { GeometryCollection } from "../../source/Domain/GeoJSON/Geometry";
 import { Feature } from "../../source/Domain/GeoJSON/Feature";
 import { FeatureCollection } from "../../source/Domain/GeoJSON/FeatureCollection";
 
