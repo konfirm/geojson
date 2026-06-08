@@ -1,5 +1,7 @@
 # Changelog
 
+## [2.0.0](https://github.com/konfirm/geojson/compare/v2.0.0-beta.0...v2.0.0) (2026-06-08)
+
 ## [2.0.0-beta.0](https://github.com/konfirm/geojson/compare/v1.0.1...v2.0.0-beta.0) (2026-06-07)
 
 ### ⚠ BREAKING CHANGES
