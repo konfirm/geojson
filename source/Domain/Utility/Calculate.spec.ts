@@ -252,6 +252,24 @@ describe('Domain/Utility/Calculate', () => {
 				);
 			});
 		});
+
+		test('projects onto a line crossing the antimeridian instead of its false raw midpoint', () => {
+			// this line hops ~2° across the dateline; its raw midpoint (lon 0)
+			// is nowhere near the actual line
+			const line: [[number, number], [number, number]] = [
+				[179, -1],
+				[-179, 1],
+			];
+
+			assert.deepStrictEqual(
+				getClosestPointOnLineByPoint([0, -1], line),
+				[179, -1],
+			);
+			assert.deepStrictEqual(
+				getClosestPointOnLineByPoint([0, 1], line),
+				[179, -1],
+			);
+		});
 	});
 
 	describe('isLinesCrossing', () => {
@@ -280,6 +298,33 @@ describe('Domain/Utility/Calculate', () => {
 					!isLinesCrossing(a, b),
 					`${explain(a)} does not cross ${explain(b)}`,
 				);
+			});
+		});
+
+		describe('lines crossing the antimeridian', () => {
+			// a short hop across the dateline, nowhere near lon=0
+			const dateline: Array<[number, number]> = [
+				[179, -1],
+				[-179, 1],
+			];
+			// the same hop crossing itself from the other side
+			const dateline2: Array<[number, number]> = [
+				[-179, -1],
+				[179, 1],
+			];
+			const meridian: Array<[number, number]> = [
+				[0, -1],
+				[0, 1],
+			];
+
+			test('returns false for a dateline-hopping line far from another line, in both argument orders', () => {
+				assert.ok(!isLinesCrossing(dateline, meridian));
+				assert.ok(!isLinesCrossing(meridian, dateline));
+			});
+
+			test('returns true for two lines genuinely crossing at the dateline, in both argument orders', () => {
+				assert.ok(isLinesCrossing(dateline, dateline2));
+				assert.ok(isLinesCrossing(dateline2, dateline));
 			});
 		});
 	});
@@ -347,6 +392,51 @@ describe('Domain/Utility/Calculate', () => {
 					!isPointInRing(point, ring),
 					`${explain(point)} is not inside ${explain(ring)}`,
 				);
+			});
+		});
+
+		describe('rings crossing the antimeridian', () => {
+			// a 2°×2° box straddling ±180°, expressed as GeoJSON typically would
+			const ring = [
+				[179, 0],
+				[179, 2],
+				[-179, 2],
+				[-179, 0],
+				[179, 0],
+			];
+
+			test('returns true for points inside the ring', () => {
+				each`
+					point          | ring
+					---------------|---
+					${[180, 1]}    | ${ring}
+					${[-180, 1]}   | ${ring}
+					${[179.5, 1]}  | ${ring}
+					${[-179.5, 1]} | ${ring}
+					${[179, 1]}    | ${ring}
+					${[-179, 1]}   | ${ring}
+				`(({ point, ring }: Improbability) => {
+					assert.ok(
+						isPointInRing(point, ring),
+						`${explain(point)} is inside ${explain(ring)}`,
+					);
+				});
+			});
+
+			test('returns false for points outside the ring', () => {
+				each`
+					point          | ring
+					---------------|---
+					${[0, 1]}      | ${ring}
+					${[178.5, 1]}  | ${ring}
+					${[-178.5, 1]} | ${ring}
+					${[180, 3]}    | ${ring}
+				`(({ point, ring }: Improbability) => {
+					assert.ok(
+						!isPointInRing(point, ring),
+						`${explain(point)} is not inside ${explain(ring)}`,
+					);
+				});
 			});
 		});
 	});
