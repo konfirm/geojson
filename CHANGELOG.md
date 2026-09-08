@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.1-beta.0](https://github.com/konfirm/geojson/compare/v2.0.0...v2.0.1-beta.0) (2026-09-08)
+
+### Bug Fixes
+
+* antimeridian-crossing geometry before flat-plane math ([4623cf2](https://github.com/konfirm/geojson/commit/4623cf210e60f71b33ffb49dd8dcca9bbe23302f)), closes [#12](https://github.com/konfirm/geojson/issues/12)
+* **ci:** stop coverage scripts from sweeping up the GeodTest.dat stream test ([156dcf6](https://github.com/konfirm/geojson/commit/156dcf640741d96016f3e48d5e6b52535812f5d6))
+* put text together ([727d850](https://github.com/konfirm/geojson/commit/727d85073de4ea6193058a02f34a364168da3749))
+
 ## [2.0.0](https://github.com/konfirm/geojson/compare/v2.0.0-beta.0...v2.0.0) (2026-06-08)
 
 ## [2.0.0-beta.0](https://github.com/konfirm/geojson/compare/v1.0.1...v2.0.0-beta.0) (2026-06-07)

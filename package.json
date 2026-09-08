@@ -1,6 +1,6 @@
 {
 	"name": "@konfirm/geojson",
-	"version": "2.0.0",
+	"version": "2.0.1-beta.0",
 	"description": "TypeScript-first GeoJSON validation, intersection, and geodesic distance — RFC 7946 compliant",
 	"main": "dist/main.js",
 	"module": "dist/main.mjs",
