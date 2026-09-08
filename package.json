@@ -23,8 +23,8 @@
 		"test": "npm run test:unit && npm run test:integration",
 		"test:unit": "node --require ./test.register.cjs --test 'source/**/*.spec.ts'",
 		"test:integration": "node --require ./test.register.cjs --test 'test/**/*.spec.ts'",
-		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.ts'",
-		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r text html-spa -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.ts'",
+		"test:coverage": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
+		"test:coverage:html": "odz -s 'source/**' -S 'source/**/*.spec.ts' 'source/main.ts' -r text html-spa -rd ./coverage -- node --require ./test.register.cjs --test 'source/**/*.spec.ts' 'test/**/*.spec.ts'",
 		"test:geodesic": "node --require ./test.register.cjs test/Domain/Utility/Geodesic.spec.stream.ts",
 		"compare:formulas": "node --require ./test.register.cjs scripts/geodtest-compare.ts",
 		"build": "tsup",
@@ -60,20 +60,23 @@
 	"author": "Rogier Spieker <rogier+npm@konfirm.eu>",
 	"license": "MIT",
 	"devDependencies": {
-		"@konfirm/guard": "^2.0.0",
-		"@biomejs/biome": "^2.4.16",
-		"@commitlint/config-conventional": "^20.5.3",
-		"@release-it/conventional-changelog": "^10.0.6",
-		"@types/node": "^22.0.0",
-		"commitlint": "^20.5.3",
+		"@biomejs/biome": "^2.5.12",
+		"@commitlint/config-conventional": "^21.2.2",
+		"@konfirm/guard": "^2.0.2",
+		"@release-it/conventional-changelog": "^12.0.0",
+		"@types/node": "^26.5.0",
+		"commitlint": "^21.2.2",
 		"husky": "^9.1.7",
 		"one-double-zero": "^1.1.1",
-		"release-it": "^19.2.4",
-		"template-literal-each": "^3.0.0",
-		"ts-node": "^10.9.1",
-		"tslib": "^2.5.0",
+		"release-it": "^21.0.2",
+		"template-literal-each": "^3.1.0",
+		"ts-node": "^10.9.2",
+		"tslib": "^2.8.1",
 		"tsup": "^8.5.1",
-		"typescript": "^6.0.0"
+		"typescript": "^6.0.3"
+	},
+	"overrides": {
+		"toml": "^4.2.0"
 	},
 	"release-it": {
 		"git": {

@@ -191,6 +191,13 @@ isStrictFeatureCollection(value, isStrictPoint);     // value is FeatureCollecti
 isStrictGeometryCollection(value, isStrictPoint);    // value is GeometryCollection<Point>
 ```
 
+### Antimeridian-crossing geometry
+
+`intersect`, `distance`, and the RFC 7946 §3.1.6 winding checks (`isStrictPolygon`,
+`isStrictMultiPolygon`) all correctly handle geometry that crosses the antimeridian (±180°
+longitude) without being split into a `MultiPolygon`/`MultiLineString` — RFC 7946 §3.1.9 permits
+this ("SHOULD be represented by cutting" is not a MUST). [Read how the fix works](./docs/antimeridian.md).
+
 ### intersect
 
 Verify whether the provided GeoJSON objects intersect.
