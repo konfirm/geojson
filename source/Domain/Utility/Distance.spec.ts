@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Improbability } from '../../../test/helper/spec';
-import type { Feature, Point, Polygon } from '../../main';
+import type { Feature, LineString, Point, Polygon } from '../../main';
 import { cartesian, distance, haversine, karney, vincenty } from './Distance';
 
 const amsterdam: Feature = {
@@ -99,6 +99,66 @@ describe('distance', () => {
 				coordinates: [0, 0],
 			} as Improbability;
 			assert.strictEqual(distance(origin, unknown), Infinity);
+		});
+	});
+
+	describe('geometry crossing the antimeridian', () => {
+		test('does not collapse to 0 for lines that only appear to cross on raw coordinates', () => {
+			// a short hop across the dateline; b sits at lon=0, nowhere near it
+			const a: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[179, -1],
+					[-179, 1],
+				],
+			};
+			const b: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[0, -1],
+					[0, 1],
+				],
+			};
+			assert.ok(distance(a, b) > 1_000_000);
+			assert.ok(distance(b, a) > 1_000_000);
+		});
+
+		test('reports the true short gap between lines hugging opposite sides of the dateline', () => {
+			const a: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[179, 0],
+					[179, 1],
+				],
+			};
+			const b: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[-179, 0],
+					[-179, 1],
+				],
+			};
+			const d = distance(a, b);
+			assert.ok(d > 200_000 && d < 250_000, `expected ~222km, got ${d}`);
+		});
+
+		test('point inside a dateline-straddling polygon has distance 0', () => {
+			const poly: Polygon = {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[179, 0],
+						[-179, 0],
+						[-179, 2],
+						[179, 2],
+						[179, 0],
+					],
+				],
+			};
+			assert.strictEqual(
+				distance({ type: 'Point', coordinates: [180, 1] }, poly),
+				0,
+			);
 		});
 	});
 });

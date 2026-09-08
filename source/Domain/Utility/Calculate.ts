@@ -5,6 +5,7 @@ import {
 	EARTH_RADIUS_MINOR,
 } from '../Constants';
 import type { Point } from '../GeoJSON/Geometry/Point';
+import { alignPath, alignPosition, unwrapPath } from './Antimeridian';
 import { createBoxFromCoordinates, isWithinBox } from './Box';
 import { karney } from './Geodesic';
 import { squared } from './Numeric';
@@ -148,7 +149,9 @@ export function getClosestPointOnLineByPoint(
 	point: Point['coordinates'],
 	line: [Point['coordinates'], Point['coordinates']],
 ): Point['coordinates'] {
-	const [[px, py], [ax, ay], [bx, by]] = [point, ...line];
+	const unwrappedLine = unwrapPath(line);
+	const [[ax, ay], [bx, by]] = unwrappedLine;
+	const [px, py] = alignPosition(point, ax);
 	const [abx, aby] = [bx - ax, by - ay];
 	const [apx, apy] = [px - ax, py - ay];
 	const t = constrain(
@@ -157,7 +160,7 @@ export function getClosestPointOnLineByPoint(
 		1,
 	);
 
-	return t === 0 || t === 1 ? line[t] : [ax + abx * t, ay + aby * t];
+	return t === 0 || t === 1 ? unwrappedLine[t] : [ax + abx * t, ay + aby * t];
 }
 
 export function getDistanceOfPointToPoint(
@@ -206,8 +209,10 @@ export function isLinesCrossing(
 	a: [Point['coordinates'], Point['coordinates']],
 	b: [Point['coordinates'], Point['coordinates']],
 ): boolean {
-	const [[a1x, a1y], [a2x, a2y]] = a;
-	const [[b1x, b1y], [b2x, b2y]] = b;
+	const ua = unwrapPath(a);
+	const ub = alignPath(unwrapPath(b), ua[0][0]);
+	const [[a1x, a1y], [a2x, a2y]] = ua;
+	const [[b1x, b1y], [b2x, b2y]] = ub;
 	const [s1x, s1y, s2x, s2y] = [a2x - a1x, a2y - a1y, b2x - b1x, b2y - b1y];
 	const s =
 		(-s1y * (a1x - b1x) + s1x * (a1y - b1y)) / (-s2x * s1y + s1x * s2y);
@@ -229,27 +234,35 @@ export function isPointInRing(
 	p: Point['coordinates'],
 	ring: Array<Point['coordinates']>,
 ): boolean {
-	if (!isWithinBox(p, createBoxFromCoordinates(ring))) {
+	const unwrapped = unwrapPath(ring);
+	const point = alignPosition(p, unwrapped[0][0]);
+	const box = createBoxFromCoordinates(unwrapped);
+
+	if (!isWithinBox(point, box)) {
 		return false;
 	}
 
-	const { length } = ring;
-	const odd = ring.reduce((odd, a, i) => {
-		const b = ring[(length + i - 1) % length];
+	const { length } = unwrapped;
+	const odd = unwrapped.reduce((odd, a, i) => {
+		const b = unwrapped[(length + i - 1) % length];
 
-		return ((a[1] < p[1] && b[1] >= p[1]) ||
-			(b[1] < p[1] && a[1] >= p[1])) &&
-			(a[0] <= p[0] || b[0] <= p[0])
+		return ((a[1] < point[1] && b[1] >= point[1]) ||
+			(b[1] < point[1] && a[1] >= point[1])) &&
+			(a[0] <= point[0] || b[0] <= point[0])
 			? odd ^
 					Number(
-						a[0] + ((p[1] - a[1]) / (b[1] - a[1])) * (b[0] - a[0]) <
-							p[0],
+						a[0] +
+							((point[1] - a[1]) / (b[1] - a[1])) *
+								(b[0] - a[0]) <
+							point[0],
 					)
 			: odd;
 	}, 0);
 
 	return (
 		odd !== 0 ||
-		ring.slice(1).some((a, index) => isPointOnLine(p, [ring[index], a]))
+		unwrapped
+			.slice(1)
+			.some((a, index) => isPointOnLine(point, [unwrapped[index], a]))
 	);
 }
