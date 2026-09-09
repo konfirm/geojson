@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.0-beta.0](https://github.com/konfirm/geojson/compare/v2.0.1-beta.0...v2.1.0-beta.0) (2026-09-09)
+
+### Features
+
+* **distance:** add optional radius parameter to cartesian and haversine ([2b3bb4a](https://github.com/konfirm/geojson/commit/2b3bb4a7f0e2edb0d8eaa027e6c8d17f1081b1e7)), closes [#13](https://github.com/konfirm/geojson/issues/13)
+
 ## [2.0.1-beta.0](https://github.com/konfirm/geojson/compare/v2.0.0...v2.0.1-beta.0) (2026-09-08)
 
 ### Bug Fixes
