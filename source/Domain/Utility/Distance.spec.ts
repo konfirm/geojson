@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Improbability } from '../../../test/helper/spec';
 import type { Feature, LineString, Point, Polygon } from '../../main';
+import { EARTH_RADIUS } from '../Constants';
 import { cartesian, distance, haversine, karney, vincenty } from './Distance';
 
 const amsterdam: Feature = {
@@ -60,6 +61,49 @@ describe('distance', () => {
 			assert.strictEqual(
 				karney(amsterdam, jfk),
 				distance(amsterdam, jfk, 'karney'),
+			);
+		});
+	});
+
+	describe('radius parameter', () => {
+		test('cartesian: defaults to EARTH_RADIUS', () => {
+			assert.strictEqual(
+				cartesian(amsterdam, jfk, EARTH_RADIUS),
+				cartesian(amsterdam, jfk),
+			);
+		});
+		test('haversine: defaults to EARTH_RADIUS', () => {
+			assert.strictEqual(
+				haversine(amsterdam, jfk, EARTH_RADIUS),
+				haversine(amsterdam, jfk),
+			);
+		});
+		test('cartesian: 180/π cancels the internal degrees→radians step, giving the raw planar Euclidean distance', () => {
+			const [λa, φa] = (<Point>amsterdam.geometry).coordinates;
+			const [λb, φb] = (<Point>jfk.geometry).coordinates;
+
+			assert.strictEqual(
+				cartesian(amsterdam, jfk, 180 / Math.PI),
+				Math.sqrt((λb - λa) ** 2 + (φb - φa) ** 2),
+			);
+		});
+		test('haversine: radius of 1 gives the raw angular separation in radians', () => {
+			const radians = haversine(amsterdam, jfk, 1);
+
+			assert.strictEqual(
+				haversine(amsterdam, jfk, 6_378_100),
+				radians * 6_378_100,
+			);
+		});
+		test("haversine: 6,378,100 matches MongoDB's hardcoded sphere radius for antipodal points", () => {
+			// MongoDB's own $nearSphere/2dsphere distance for exact antipodes is
+			// 20037392.10386106 m, i.e. a plain sphere of radius 6378100 (not WGS84)
+			const a: Point = { type: 'Point', coordinates: [0, 0] };
+			const b: Point = { type: 'Point', coordinates: [180, 0] };
+
+			assert.strictEqual(
+				haversine(a, b, 6_378_100),
+				20_037_392.103_861_06,
 			);
 		});
 	});

@@ -31,13 +31,15 @@ const EARTH_INVERSE_FLATTENING = 1 / EARTH_FLATTENING;
 export function cartesian(
 	[λa, φa]: Point['coordinates'],
 	[λb, φb]: Point['coordinates'],
+	radius: number = EARTH_RADIUS,
 ): number {
-	return EARTH_RADIUS * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)));
+	return radius * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)));
 }
 
 export function haversine(
 	[λa, φa]: Point['coordinates'],
 	[λb, φb]: Point['coordinates'],
+	radius: number = EARTH_RADIUS,
 ): number {
 	//https://www.movable-type.co.uk/scripts/latlong.html
 	const Δ =
@@ -46,7 +48,7 @@ export function haversine(
 			Math.cos(rad(φb)) *
 			squared(Math.sin(rad(λb - λa) / 2));
 
-	return EARTH_RADIUS * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
+	return radius * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
 }
 
 export function vincenty(
