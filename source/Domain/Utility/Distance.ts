@@ -111,12 +111,12 @@ const geometries = {
 	},
 };
 
-export function cartesian(a: GeoJSON, b: GeoJSON): number {
-	return distance(a, b, cartesianCoords);
+export function cartesian(a: GeoJSON, b: GeoJSON, radius?: number): number {
+	return distance(a, b, (pa, pb) => cartesianCoords(pa, pb, radius));
 }
 
-export function haversine(a: GeoJSON, b: GeoJSON): number {
-	return distance(a, b, haversineCoords);
+export function haversine(a: GeoJSON, b: GeoJSON, radius?: number): number {
+	return distance(a, b, (pa, pb) => haversineCoords(pa, pb, radius));
 }
 
 export function vincenty(a: GeoJSON, b: GeoJSON): number {

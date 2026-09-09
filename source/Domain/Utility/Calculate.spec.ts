@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { each } from 'template-literal-each';
 import { explain, type Improbability } from '../../../test/helper/spec';
+import { EARTH_RADIUS } from '../Constants';
 import {
+	cartesian,
 	getClosestPointOnLineByPoint,
 	getDistanceOfLineToLine,
 	getDistanceOfPointToLine,
 	getDistanceOfPointToPoint,
+	haversine,
 	isLinesCrossing,
 	isPointInRing,
 	isPointOnLine,
@@ -104,6 +107,36 @@ describe('Domain/Utility/Calculate', () => {
 					),
 				/Not a PointToPoint calculation function unknown/,
 			);
+		});
+	});
+
+	describe('radius parameter', () => {
+		test('cartesian: defaults to EARTH_RADIUS', () => {
+			assert.strictEqual(
+				cartesian([0, 0], [1, 1], EARTH_RADIUS),
+				cartesian([0, 0], [1, 1]),
+			);
+		});
+		test('haversine: defaults to EARTH_RADIUS', () => {
+			assert.strictEqual(
+				haversine([0, 0], [1, 1], EARTH_RADIUS),
+				haversine([0, 0], [1, 1]),
+			);
+		});
+		test('cartesian and haversine scale linearly with radius', () => {
+			each`
+				calc
+				----
+				${cartesian}
+				${haversine}
+			`(({ calc }: { calc: typeof cartesian }) => {
+				const base = calc([0, 0], [1, 1]);
+
+				assert.strictEqual(
+					calc([0, 0], [1, 1], EARTH_RADIUS * 2),
+					base * 2,
+				);
+			});
 		});
 	});
 

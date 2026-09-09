@@ -237,6 +237,16 @@ Obtain the (shortest) distance in meters between two GeoJSON objects. Choose a f
 
 Each formula is also exported as a standalone function for direct use and better tree-shaking.
 
+`cartesian` and `haversine` both compute `radius × angular_separation` internally, and take that radius as an optional second-to-last argument, defaulting to this library's mean Earth radius (6,371,008.7714 m). This is for callers matching a specific sphere model rather than modelling Earth generically:
+
+```ts
+haversine(a, b, 6_378_100);     // MongoDB's own $nearSphere/2dsphere sphere radius (not WGS84)
+haversine(a, b, 1);             // raw angular separation in radians (unit sphere)
+cartesian(a, b, 180 / Math.PI); // cancels the internal degrees→radians step: raw planar Euclidean distance
+```
+
+`distance()` does not take a radius argument — use `cartesian`/`haversine` directly when you need one.
+
 The formula argument accepts either a string or a custom `(a: Position, b: Position) => number` function — useful when you need a projection-specific calculation or want to plug in your own formula. The `PointToPointCalculation` type covers both and is exported for use in typed wrapper functions.
 
 Usage: `distance(<GeoJSON>, <GeoJSON> [, <PointToPointCalculation>]): number`
