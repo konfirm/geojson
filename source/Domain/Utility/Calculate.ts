@@ -6,9 +6,9 @@ import {
 } from '../Constants';
 import type { Point } from '../GeoJSON/Geometry/Point';
 import { alignPath, alignPosition, unwrapPath } from './Antimeridian';
-import { createBoxFromCoordinates, isWithinBox } from './Box';
 import { karney } from './Geodesic';
 import { squared } from './Numeric';
+import { isPositionInSphericalRing } from './Spherical';
 
 const D2R = Math.PI / 180;
 const π = Math.PI;
@@ -236,35 +236,8 @@ export function isPointInRing(
 	p: Point['coordinates'],
 	ring: Array<Point['coordinates']>,
 ): boolean {
-	const unwrapped = unwrapPath(ring);
-	const point = alignPosition(p, unwrapped[0][0]);
-	const box = createBoxFromCoordinates(unwrapped);
-
-	if (!isWithinBox(point, box)) {
-		return false;
-	}
-
-	const { length } = unwrapped;
-	const odd = unwrapped.reduce((odd, a, i) => {
-		const b = unwrapped[(length + i - 1) % length];
-
-		return ((a[1] < point[1] && b[1] >= point[1]) ||
-			(b[1] < point[1] && a[1] >= point[1])) &&
-			(a[0] <= point[0] || b[0] <= point[0])
-			? odd ^
-					Number(
-						a[0] +
-							((point[1] - a[1]) / (b[1] - a[1])) *
-								(b[0] - a[0]) <
-							point[0],
-					)
-			: odd;
-	}, 0);
-
 	return (
-		odd !== 0 ||
-		unwrapped
-			.slice(1)
-			.some((a, index) => isPointOnLine(point, [unwrapped[index], a]))
+		isPositionInSphericalRing(p, ring) ||
+		ring.slice(1).some((a, index) => isPointOnLine(p, [ring[index], a]))
 	);
 }

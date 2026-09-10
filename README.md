@@ -226,6 +226,15 @@ console.log('point intersects feature', intersect(point, feature)); // true
 console.log('feature intersects point', intersect(feature, point)); // true
 ```
 
+For `Polygon` rings whose extent makes "which side is inside" genuinely ambiguous — for
+example a ring spanning most of the globe, where the bounded region and its complement are
+both valid interpretations — `intersect()` picks the smaller of the two regions by default,
+matching MongoDB's own `2dsphere` (non-strict-winding) default. RFC 7946 §3.1.6's winding
+direction breaks an exact tie between two equally-sized regions.
+
+A self-intersecting ring (edges that cross themselves — not a valid simple polygon) throws
+rather than silently returning an arbitrary result.
+
 ### distance
 
 Obtain the (shortest) distance in meters between two GeoJSON objects. Choose a formula based on your use case:
