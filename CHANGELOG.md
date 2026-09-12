@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.0-beta.1](https://github.com/konfirm/geojson/compare/v2.1.0-beta.0...v2.1.0-beta.1) (2026-09-12)
+
+### Features
+
+* **error:** give geometry errors a typed hierarchy and provenance path ([2bae1f7](https://github.com/konfirm/geojson/commit/2bae1f728686bc55f5e7afcb7e536771c0218ede))
+* export the error types ([25757cf](https://github.com/konfirm/geojson/commit/25757cf0118f8ef915805c404ca420f10214bb3d))
+
+### Bug Fixes
+
+* correctly resolve containment for large and ambiguous ring polygons ([de6bfc2](https://github.com/konfirm/geojson/commit/de6bfc20e7a15b375eb1f766072d2a5ffff35f1f)), closes [#18](https://github.com/konfirm/geojson/issues/18)
+
 ## [2.1.0-beta.0](https://github.com/konfirm/geojson/compare/v2.0.1-beta.0...v2.1.0-beta.0) (2026-09-09)
 
 ### Features
