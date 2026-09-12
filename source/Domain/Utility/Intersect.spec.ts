@@ -123,4 +123,36 @@ describe('intersect', () => {
 			);
 		});
 	});
+
+	describe('large/ambiguous ring (issue #18 wiring check)', () => {
+		// Not a correctness suite — that lives in Spherical.spec.ts against
+		// isPositionInSphericalRing directly. Just confirms intersect()
+		// still wires down to it correctly for a ring spanning most of the
+		// globe, where flat-plane ray-casting used to invert the answer.
+		const ring: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[-180, -1],
+					[-120, -1],
+					[-60, -1],
+					[0, -1],
+					[60, -1],
+					[120, -1],
+					[-180, -1],
+				],
+			],
+		};
+
+		test('point in the smaller (south) cap intersects', () => {
+			assert.ok(
+				intersect({ type: 'Point', coordinates: [90, -45] }, ring),
+			);
+		});
+		test('point in the larger (north) cap does not intersect', () => {
+			assert.ok(
+				!intersect({ type: 'Point', coordinates: [90, 45] }, ring),
+			);
+		});
+	});
 });

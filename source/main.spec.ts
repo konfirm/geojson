@@ -4,6 +4,9 @@ import * as Main from './main';
 
 const expectedExports = [
 	'SimpleGeometryIterator',
+	'GeodesicConvergenceError',
+	'SelfIntersectingRingError',
+	'UnknownCalculationError',
 	'distance',
 	'cartesian',
 	'haversine',
