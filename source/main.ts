@@ -6,6 +6,9 @@ export {
 	isStrictPosition,
 	Position,
 } from './Domain/GeoJSON/Concept/Position';
+export { GeodesicConvergenceError } from './Domain/GeoJSON/Error/GeodesicConvergenceError';
+export { SelfIntersectingRingError } from './Domain/GeoJSON/Error/SelfIntersectingRingError';
+export { UnknownCalculationError } from './Domain/GeoJSON/Error/UnknownCalculationError';
 export { Feature, isFeature, isStrictFeature } from './Domain/GeoJSON/Feature';
 export {
 	FeatureCollection,
@@ -50,6 +53,7 @@ export {
 	isStrictPolygon,
 	Polygon,
 } from './Domain/GeoJSON/Geometry/Polygon';
+export type { GeometryPath } from './Domain/Iterator/SimpleGeometry';
 export { SimpleGeometryIterator } from './Domain/Iterator/SimpleGeometry';
 export {
 	cartesian,

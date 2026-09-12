@@ -1,13 +1,17 @@
-import type { GeometryPath } from "../../Iterator/SimpleGeometry";
-import { GeoJSONError } from "./GeoJSONError";
+import type { GeometryPath } from '../../Iterator/SimpleGeometry';
 
-export class GeodesicConvergenceError extends GeoJSONError {
+// Extends EvalError, not GeoJSONError: this is what the library has always
+// thrown for Vincenty non-convergence (predating this error hierarchy), and
+// changing that ancestry would silently break any existing `instanceof
+// EvalError` check. Deliberately not routed through GeoJSONError, so it
+// doesn't misrepresent EvalError as part of that shared ancestry too.
+export class GeodesicConvergenceError extends EvalError {
 	constructor(
 		message: string,
-		path?: GeometryPath,
+		public path?: GeometryPath,
 		public counterpart?: GeometryPath,
 	) {
-		super(message, path);
+		super(message);
 
 		this.name = 'GeodesicConvergenceError';
 	}
