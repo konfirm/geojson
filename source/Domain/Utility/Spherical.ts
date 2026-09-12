@@ -1,4 +1,5 @@
 import type { Position } from '../GeoJSON/Concept/Position';
+import { SelfIntersectingRingError } from '../GeoJSON/Error/SelfIntersectingRingError';
 
 type SpherePosition = [number, number, number];
 
@@ -91,8 +92,14 @@ function crossingCount(
 // A ring is self-intersecting if any two non-adjacent edges cross — reuses
 // arcsCross rather than inventing new geometry for this. Adjacent edges
 // (including the wrap-around pair at the closing vertex) share an endpoint
-// by construction and are excluded, not checked.
-function hasSelfIntersection(ring: Array<SpherePosition>): boolean {
+// by construction and are excluded, not checked. Returns the crossing pair
+// of edge indices (into the same array `ring` this was called with), or
+// null when the ring is simple — the indices, not just a boolean, are what
+// let the caller construct a SelfIntersectingRingError naming the actual
+// crossing edges rather than just reporting that *something* crossed.
+function findSelfIntersection(
+	ring: Array<SpherePosition>,
+): [number, number] | null {
 	const { length } = ring;
 
 	for (let i = 0; i < length; i++) {
@@ -109,12 +116,12 @@ function hasSelfIntersection(ring: Array<SpherePosition>): boolean {
 					ring[(j + 1) % length],
 				)
 			) {
-				return true;
+				return [i, j];
 			}
 		}
 	}
 
-	return false;
+	return null;
 }
 
 // A point believed to be in the ring's smaller region: the vertex centroid
@@ -151,20 +158,24 @@ function centroid(ring: Array<SpherePosition>): SpherePosition {
 	]);
 }
 
-// hasSelfIntersection is O(n²) in the ring's edge count and would otherwise
-// re-run from scratch on every call against the same ring — real polygons
-// (e.g. a detailed country boundary) can have hundreds of vertices, and a
-// caller checking many points against one ring pays that cost every time.
-// Cached by value (the ring's own coordinates, not the array's identity):
-// stringifying is itself a cheap O(n) copy, so a caller mutating their ring
-// array in place naturally produces a different key next time (no stale
-// hit), while two distinct arrays holding the same coordinates collapse to
-// the same entry (better reuse than reference identity would give). Traded
-// off deliberately: entries are never evicted, so a process checking an
+// findSelfIntersection is O(n²) in the ring's edge count and would
+// otherwise re-run from scratch on every call against the same ring — real
+// polygons (e.g. a detailed country boundary) can have hundreds of
+// vertices, and a caller checking many points against one ring pays that
+// cost every time. Cached by value (the ring's own coordinates, not the
+// array's identity): stringifying is itself a cheap O(n) copy, so a caller
+// mutating their ring array in place naturally produces a different key
+// next time (no stale hit), while two distinct arrays holding the same
+// coordinates collapse to the same entry (better reuse than reference
+// identity would give). Caches the crossing indices, not an Error instance
+// — constructing a fresh SelfIntersectingRingError on every call, cache hit
+// or not, avoids a single shared, mutable error object being handed out to
+// unrelated callers who each expect to enrich their own copy. Traded off
+// deliberately: entries are never evicted, so a process checking an
 // unbounded number of distinct rings over its lifetime would grow this
 // without bound — acceptable for the expected usage (a bounded set of
 // rings queried repeatedly), revisit if that assumption stops holding.
-const selfIntersectionCache = new Map<string, boolean>();
+const selfIntersectionCache = new Map<string, [number, number] | null>();
 
 // Spherical point-in-ring containment via crossing-count parity, replacing
 // flat-plane ray-casting (which has no way to resolve a ring large/
@@ -185,15 +196,21 @@ export function isPositionInSphericalRing(
 ): boolean {
 	const vertices = ring.slice(0, -1).map(toSpherePosition);
 	const key = JSON.stringify(ring);
-	let selfIntersecting = selfIntersectionCache.get(key);
+	let crossing = selfIntersectionCache.get(key);
 
-	if (selfIntersecting === undefined) {
-		selfIntersecting = hasSelfIntersection(vertices);
-		selfIntersectionCache.set(key, selfIntersecting);
+	if (crossing === undefined) {
+		crossing = findSelfIntersection(vertices);
+		selfIntersectionCache.set(key, crossing);
 	}
 
-	if (selfIntersecting) {
-		throw new Error('Ring is self-intersecting');
+	if (crossing) {
+		const [i, j] = crossing;
+
+		throw new SelfIntersectingRingError(
+			'Ring is self-intersecting',
+			[ring[i], ring[i + 1]],
+			[ring[j], ring[j + 1]],
+		);
 	}
 
 	const p = toSpherePosition(position);
