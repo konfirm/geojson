@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.1.0-beta.1](https://github.com/konfirm/geojson/compare/v2.1.0-beta.0...v2.1.0-beta.1) (2026-09-12)
+
+### Features
+
+* **error:** give geometry errors a typed hierarchy and provenance path ([2bae1f7](https://github.com/konfirm/geojson/commit/2bae1f728686bc55f5e7afcb7e536771c0218ede))
+* export the error types ([25757cf](https://github.com/konfirm/geojson/commit/25757cf0118f8ef915805c404ca420f10214bb3d))
+
+### Bug Fixes
+
+* correctly resolve containment for large and ambiguous ring polygons ([de6bfc2](https://github.com/konfirm/geojson/commit/de6bfc20e7a15b375eb1f766072d2a5ffff35f1f)), closes [#18](https://github.com/konfirm/geojson/issues/18)
+
+## [2.1.0-beta.0](https://github.com/konfirm/geojson/compare/v2.0.1-beta.0...v2.1.0-beta.0) (2026-09-09)
+
+### Features
+
+* **distance:** add optional radius parameter to cartesian and haversine ([2b3bb4a](https://github.com/konfirm/geojson/commit/2b3bb4a7f0e2edb0d8eaa027e6c8d17f1081b1e7)), closes [#13](https://github.com/konfirm/geojson/issues/13)
+
+## [2.0.1-beta.0](https://github.com/konfirm/geojson/compare/v2.0.0...v2.0.1-beta.0) (2026-09-08)
+
+### Bug Fixes
+
+* antimeridian-crossing geometry before flat-plane math ([4623cf2](https://github.com/konfirm/geojson/commit/4623cf210e60f71b33ffb49dd8dcca9bbe23302f)), closes [#12](https://github.com/konfirm/geojson/issues/12)
+* **ci:** stop coverage scripts from sweeping up the GeodTest.dat stream test ([156dcf6](https://github.com/konfirm/geojson/commit/156dcf640741d96016f3e48d5e6b52535812f5d6))
+* put text together ([727d850](https://github.com/konfirm/geojson/commit/727d85073de4ea6193058a02f34a364168da3749))
+
 ## [2.0.0](https://github.com/konfirm/geojson/compare/v2.0.0-beta.0...v2.0.0) (2026-06-08)
 
 ## [2.0.0-beta.0](https://github.com/konfirm/geojson/compare/v1.0.1...v2.0.0-beta.0) (2026-06-07)

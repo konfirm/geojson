@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Improbability } from '../../../test/helper/spec';
-import type { Feature, Point, Polygon } from '../../main';
+import type { Feature, LineString, Point, Polygon } from '../../main';
+import { EARTH_RADIUS } from '../Constants';
+import { GeodesicConvergenceError } from '../GeoJSON/Error/GeodesicConvergenceError';
+import { SelfIntersectingRingError } from '../GeoJSON/Error/SelfIntersectingRingError';
+import { UnknownCalculationError } from '../GeoJSON/Error/UnknownCalculationError';
 import { cartesian, distance, haversine, karney, vincenty } from './Distance';
 
 const amsterdam: Feature = {
@@ -64,6 +68,49 @@ describe('distance', () => {
 		});
 	});
 
+	describe('radius parameter', () => {
+		test('cartesian: defaults to EARTH_RADIUS', () => {
+			assert.strictEqual(
+				cartesian(amsterdam, jfk, EARTH_RADIUS),
+				cartesian(amsterdam, jfk),
+			);
+		});
+		test('haversine: defaults to EARTH_RADIUS', () => {
+			assert.strictEqual(
+				haversine(amsterdam, jfk, EARTH_RADIUS),
+				haversine(amsterdam, jfk),
+			);
+		});
+		test('cartesian: 180/π cancels the internal degrees→radians step, giving the raw planar Euclidean distance', () => {
+			const [λa, φa] = (<Point>amsterdam.geometry).coordinates;
+			const [λb, φb] = (<Point>jfk.geometry).coordinates;
+
+			assert.strictEqual(
+				cartesian(amsterdam, jfk, 180 / Math.PI),
+				Math.sqrt((λb - λa) ** 2 + (φb - φa) ** 2),
+			);
+		});
+		test('haversine: radius of 1 gives the raw angular separation in radians', () => {
+			const radians = haversine(amsterdam, jfk, 1);
+
+			assert.strictEqual(
+				haversine(amsterdam, jfk, 6_378_100),
+				radians * 6_378_100,
+			);
+		});
+		test("haversine: 6,378,100 matches MongoDB's hardcoded sphere radius for antipodal points", () => {
+			// MongoDB's own $nearSphere/2dsphere distance for exact antipodes is
+			// 20037392.10386106 m, i.e. a plain sphere of radius 6378100 (not WGS84)
+			const a: Point = { type: 'Point', coordinates: [0, 0] };
+			const b: Point = { type: 'Point', coordinates: [180, 0] };
+
+			assert.strictEqual(
+				haversine(a, b, 6_378_100),
+				20_037_392.103_861_06,
+			);
+		});
+	});
+
 	describe('geometry types', () => {
 		const origin: Point = { type: 'Point', coordinates: [0, 0] };
 
@@ -99,6 +146,208 @@ describe('distance', () => {
 				coordinates: [0, 0],
 			} as Improbability;
 			assert.strictEqual(distance(origin, unknown), Infinity);
+		});
+	});
+
+	describe('geometry crossing the antimeridian', () => {
+		test('does not collapse to 0 for lines that only appear to cross on raw coordinates', () => {
+			// a short hop across the dateline; b sits at lon=0, nowhere near it
+			const a: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[179, -1],
+					[-179, 1],
+				],
+			};
+			const b: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[0, -1],
+					[0, 1],
+				],
+			};
+			assert.ok(distance(a, b) > 1_000_000);
+			assert.ok(distance(b, a) > 1_000_000);
+		});
+
+		test('reports the true short gap between lines hugging opposite sides of the dateline', () => {
+			const a: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[179, 0],
+					[179, 1],
+				],
+			};
+			const b: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[-179, 0],
+					[-179, 1],
+				],
+			};
+			const d = distance(a, b);
+			assert.ok(d > 200_000 && d < 250_000, `expected ~222km, got ${d}`);
+		});
+
+		test('point inside a dateline-straddling polygon has distance 0', () => {
+			const poly: Polygon = {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[179, 0],
+						[-179, 0],
+						[-179, 2],
+						[179, 2],
+						[179, 0],
+					],
+				],
+			};
+			assert.strictEqual(
+				distance({ type: 'Point', coordinates: [180, 1] }, poly),
+				0,
+			);
+		});
+	});
+
+	describe('error propagation', () => {
+		// A classic bowtie: edges (0,0)-(2,2) and (2,0)-(0,2) cross.
+		const bowtie: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[0, 0],
+					[2, 2],
+					[2, 0],
+					[0, 2],
+					[0, 0],
+				],
+			],
+		};
+		const square: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[10, 10],
+					[10, 12],
+					[12, 12],
+					[12, 10],
+					[10, 10],
+				],
+			],
+		};
+		const point: Point = { type: 'Point', coordinates: [1, 1] };
+
+		describe('SelfIntersectingRingError', () => {
+			test('PolygonPoint: no PolygonPolygon marker involved, resolves via isPolygon(a)', () => {
+				assert.throws(
+					() => distance(bowtie, point),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+
+			test('PointPolygon (reversed args): same fallback, but resolves via isPolygon(b)', () => {
+				assert.throws(
+					() => distance(point, bowtie),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+
+			test('PolygonPolygon: self-intersecting a throws on the first sub-call', () => {
+				assert.throws(
+					() => distance(bowtie, square),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+
+			test('PolygonPolygon: self-intersecting b only surfaces on the second sub-call', () => {
+				assert.throws(
+					() => distance(square, bowtie),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+		});
+
+		describe('other error types (PolygonPolygon pass-through)', () => {
+			// No self-intersection anywhere here
+			const small: Polygon = {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[4, 4],
+						[4, 6],
+						[6, 6],
+						[6, 4],
+						[4, 4],
+					],
+				],
+			};
+			const big: Polygon = {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[0, 0],
+						[0, 10],
+						[10, 10],
+						[10, 0],
+						[0, 0],
+					],
+				],
+			};
+
+			test('a non-SelfIntersectingRingError from the first sub-call is rethrown untagged', () => {
+				assert.throws(
+					() => distance(small, big, <Improbability>'invalid'),
+					(error: unknown) => {
+						assert.ok(error instanceof UnknownCalculationError);
+						assert.strictEqual(error.path, undefined);
+						return true;
+					},
+				);
+			});
+
+			test('a non-SelfIntersectingRingError from the second sub-call is rethrown untagged', () => {
+				assert.throws(
+					() => distance(big, small, <Improbability>'invalid'),
+					(error: unknown) => {
+						assert.ok(error instanceof UnknownCalculationError);
+						assert.strictEqual(error.path, undefined);
+						return true;
+					},
+				);
+			});
+		});
+
+		describe('GeodesicConvergenceError', () => {
+			test('vincenty near-antipodal failure attaches path and counterpart', () => {
+				const a: Point = { type: 'Point', coordinates: [0, 0] };
+				const b: Point = { type: 'Point', coordinates: [179.7, 0.5] };
+
+				assert.throws(
+					() => distance(a, b, 'vincenty'),
+					(error: unknown) => {
+						assert.ok(error instanceof GeodesicConvergenceError);
+						assert.deepStrictEqual(error.path, [a]);
+						assert.deepStrictEqual(error.counterpart, [b]);
+						return true;
+					},
+				);
+			});
 		});
 	});
 });

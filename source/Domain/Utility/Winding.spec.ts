@@ -21,6 +21,25 @@ const RFC7946_HOLE = [
 	[100.8, 0.8],
 ];
 
+// A 2°×2° box straddling the antimeridian (RFC 7946 §3.1.9). Unwrapped,
+// this traces (179,0) -> (179,2) -> (181,2) -> (181,0) -> back: up the
+// left side, across the top, down the right side, across the bottom —
+// clockwise. Reversing the vertex order makes it counterclockwise.
+const ANTIMERIDIAN_CW = [
+	[179, 0],
+	[179, 2],
+	[-179, 2],
+	[-179, 0],
+	[179, 0],
+];
+const ANTIMERIDIAN_CCW = [
+	[179, 0],
+	[-179, 0],
+	[-179, 2],
+	[179, 2],
+	[179, 0],
+];
+
 describe('Domain/Utility/Winding', () => {
 	describe('isClockwiseWinding', () => {
 		test('returns true for clockwise or degenerate rings', () => {
@@ -97,6 +116,18 @@ describe('Domain/Utility/Winding', () => {
 					`not isCounterClockwiseWinding ${JSON.stringify(position)}`,
 				);
 			});
+		});
+	});
+
+	describe('rings crossing the antimeridian', () => {
+		test('isClockwiseWinding identifies the clockwise ring, not the counter-clockwise one', () => {
+			assert.ok(isClockwiseWinding(ANTIMERIDIAN_CW));
+			assert.ok(!isClockwiseWinding(ANTIMERIDIAN_CCW));
+		});
+
+		test('isCounterClockwiseWinding identifies the counter-clockwise ring, not the clockwise one', () => {
+			assert.ok(isCounterClockwiseWinding(ANTIMERIDIAN_CCW));
+			assert.ok(!isCounterClockwiseWinding(ANTIMERIDIAN_CW));
 		});
 	});
 });

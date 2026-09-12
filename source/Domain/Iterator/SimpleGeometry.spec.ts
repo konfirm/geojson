@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Feature } from '../GeoJSON/Feature';
 import type { FeatureCollection } from '../GeoJSON/FeatureCollection';
+import type { GeoJSON } from '../GeoJSON/GeoJSON';
 import type { GeometryCollection } from '../GeoJSON/Geometry';
 import type { LineString } from '../GeoJSON/Geometry/LineString';
 import type { MultiLineString } from '../GeoJSON/Geometry/MultiLineString';
@@ -11,7 +12,7 @@ import type { Point } from '../GeoJSON/Geometry/Point';
 import type { Polygon } from '../GeoJSON/Geometry/Polygon';
 import * as Export from './SimpleGeometry';
 
-const { SimpleGeometryIterator } = Export;
+const { SimpleGeometryIterator, SYNTH_INDEX } = Export;
 
 const point: Point = { type: 'Point', coordinates: [0, 0] };
 const multipoint: MultiPoint = {
@@ -112,232 +113,348 @@ const featurecollection: FeatureCollection = {
 	],
 };
 
+function synth(geometry: GeoJSON, index: number): typeof geometry {
+	return {
+		...geometry,
+		[SYNTH_INDEX]: index,
+	};
+}
+
 describe('Domain/Iterator/SimpleGeometryIterator', () => {
-	test('implements Symbol.iterator', () => {
-		assert.ok(Symbol.iterator in new SimpleGeometryIterator(point));
-	});
+	describe('basic iteration', () => {
+		test('implements Symbol.iterator', () => {
+			assert.ok(Symbol.iterator in new SimpleGeometryIterator(point));
+		});
 
-	test('Point with MultiPoint yields point then expanded multipoint', () => {
-		const expected = [
-			point,
-			{ type: 'Point', coordinates: [1, 1] },
-			{ type: 'Point', coordinates: [2, 2] },
-		];
-		assert.deepStrictEqual(
-			[...new SimpleGeometryIterator(point, multipoint)],
-			expected,
-		);
-	});
+		test('Point yields point', () => {
+			const expected = [point];
 
-	test('MultiPoint with LineString yields expanded multipoint then linestring', () => {
-		const expected = [
-			{ type: 'Point', coordinates: [1, 1] },
-			{ type: 'Point', coordinates: [2, 2] },
-			linestring,
-		];
-		assert.deepStrictEqual(
-			[...new SimpleGeometryIterator(multipoint, linestring)],
-			expected,
-		);
-	});
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(point)],
+				expected,
+			);
+		});
 
-	test('MultiPoint with MultiLineString yields expanded multipoint then expanded multilinestring', () => {
-		const expected = [
-			{ type: 'Point', coordinates: [1, 1] },
-			{ type: 'Point', coordinates: [2, 2] },
-			{
-				type: 'LineString',
-				coordinates: [
-					[5, 5],
-					[6, 6],
-				],
-			},
-			{
-				type: 'LineString',
-				coordinates: [
-					[7, 7],
-					[8, 8],
-				],
-			},
-			{
-				type: 'LineString',
-				coordinates: [
-					[9, 9],
-					[10, 10],
-				],
-			},
-		];
-		assert.deepStrictEqual(
-			[...new SimpleGeometryIterator(multipoint, multilinestring)],
-			expected,
-		);
-	});
+		test('Point with MultiPoint yields point then expanded multipoint', () => {
+			const expected = [
+				point,
+				{ type: 'Point', coordinates: [1, 1] },
+				{ type: 'Point', coordinates: [2, 2] },
+			];
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(point, multipoint)],
+				expected,
+			);
+		});
 
-	test('MultiLineString with Polygon yields expanded multilinestring then polygon', () => {
-		const expected = [
-			{
-				type: 'LineString',
-				coordinates: [
-					[5, 5],
-					[6, 6],
-				],
-			},
-			{
-				type: 'LineString',
-				coordinates: [
-					[7, 7],
-					[8, 8],
-				],
-			},
-			{
-				type: 'LineString',
-				coordinates: [
-					[9, 9],
-					[10, 10],
-				],
-			},
-			polygon,
-		];
-		assert.deepStrictEqual(
-			[...new SimpleGeometryIterator(multilinestring, polygon)],
-			expected,
-		);
-	});
+		test('MultiPoint with LineString yields expanded multipoint then linestring', () => {
+			const expected = [
+				{ type: 'Point', coordinates: [1, 1] },
+				{ type: 'Point', coordinates: [2, 2] },
+				linestring,
+			];
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(multipoint, linestring)],
+				expected,
+			);
+		});
 
-	test('Polygon with MultiPolygon yields polygon then expanded multipolygon', () => {
-		const expected = [
-			polygon,
-			{
-				type: 'Polygon',
-				coordinates: [
-					[
-						[4, 4],
-						[4, 5],
+		test('MultiPoint with MultiLineString yields expanded multipoint then expanded multilinestring', () => {
+			const expected = [
+				{ type: 'Point', coordinates: [1, 1] },
+				{ type: 'Point', coordinates: [2, 2] },
+				{
+					type: 'LineString',
+					coordinates: [
 						[5, 5],
-						[5, 4],
-						[4, 4],
+						[6, 6],
 					],
-				],
-			},
-			{
-				type: 'Polygon',
-				coordinates: [
-					[
-						[0, 0],
-						[0, 3],
-						[3, 3],
-						[3, 0],
-						[0, 0],
+				},
+				{
+					type: 'LineString',
+					coordinates: [
+						[7, 7],
+						[8, 8],
 					],
-					[
-						[1, 1],
-						[2, 1],
-						[2, 2],
-						[1, 2],
-						[1, 1],
+				},
+				{
+					type: 'LineString',
+					coordinates: [
+						[9, 9],
+						[10, 10],
 					],
-				],
-			},
-		];
-		assert.deepStrictEqual(
-			[...new SimpleGeometryIterator(polygon, multipolygon)],
-			expected,
-		);
-	});
+				},
+			];
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(multipoint, multilinestring)],
+				expected,
+			);
+		});
 
-	test('Polygon with Feature yields polygon then feature geometry', () => {
-		const expected = [polygon, linestring];
-		assert.deepStrictEqual(
-			[...new SimpleGeometryIterator(polygon, feature)],
-			expected,
-		);
-	});
-
-	test('GeometryCollection with FeatureCollection yields all simple geometries in order', () => {
-		const expected = [
-			point,
-			{ type: 'Point', coordinates: [1, 1] },
-			{ type: 'Point', coordinates: [2, 2] },
-			{
-				type: 'LineString',
-				coordinates: [
-					[5, 5],
-					[6, 6],
-				],
-			},
-			{
-				type: 'LineString',
-				coordinates: [
-					[7, 7],
-					[8, 8],
-				],
-			},
-			{
-				type: 'LineString',
-				coordinates: [
-					[9, 9],
-					[10, 10],
-				],
-			},
-			polygon,
-			{
-				type: 'Polygon',
-				coordinates: [
-					[
-						[4, 4],
-						[4, 5],
+		test('MultiLineString with Polygon yields expanded multilinestring then polygon', () => {
+			const expected = [
+				{
+					type: 'LineString',
+					coordinates: [
 						[5, 5],
-						[5, 4],
-						[4, 4],
+						[6, 6],
 					],
+				},
+				{
+					type: 'LineString',
+					coordinates: [
+						[7, 7],
+						[8, 8],
+					],
+				},
+				{
+					type: 'LineString',
+					coordinates: [
+						[9, 9],
+						[10, 10],
+					],
+				},
+				polygon,
+			];
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(multilinestring, polygon)],
+				expected,
+			);
+		});
+
+		test('Polygon with MultiPolygon yields polygon then expanded multipolygon', () => {
+			const expected = [
+				polygon,
+				{
+					type: 'Polygon',
+					coordinates: [
+						[
+							[4, 4],
+							[4, 5],
+							[5, 5],
+							[5, 4],
+							[4, 4],
+						],
+					],
+				},
+				{
+					type: 'Polygon',
+					coordinates: [
+						[
+							[0, 0],
+							[0, 3],
+							[3, 3],
+							[3, 0],
+							[0, 0],
+						],
+						[
+							[1, 1],
+							[2, 1],
+							[2, 2],
+							[1, 2],
+							[1, 1],
+						],
+					],
+				},
+			];
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(polygon, multipolygon)],
+				expected,
+			);
+		});
+
+		test('Polygon with Feature yields polygon then feature geometry', () => {
+			const expected = [polygon, linestring];
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(polygon, feature)],
+				expected,
+			);
+		});
+
+		test('GeometryCollection with FeatureCollection yields all simple geometries in order', () => {
+			const expected = [
+				point,
+				{ type: 'Point', coordinates: [1, 1] },
+				{ type: 'Point', coordinates: [2, 2] },
+				{
+					type: 'LineString',
+					coordinates: [
+						[5, 5],
+						[6, 6],
+					],
+				},
+				{
+					type: 'LineString',
+					coordinates: [
+						[7, 7],
+						[8, 8],
+					],
+				},
+				{
+					type: 'LineString',
+					coordinates: [
+						[9, 9],
+						[10, 10],
+					],
+				},
+				polygon,
+				{
+					type: 'Polygon',
+					coordinates: [
+						[
+							[4, 4],
+							[4, 5],
+							[5, 5],
+							[5, 4],
+							[4, 4],
+						],
+					],
+				},
+				{
+					type: 'Polygon',
+					coordinates: [
+						[
+							[0, 0],
+							[0, 3],
+							[3, 3],
+							[3, 0],
+							[0, 0],
+						],
+						[
+							[1, 1],
+							[2, 1],
+							[2, 2],
+							[1, 2],
+							[1, 1],
+						],
+					],
+				},
+			];
+			assert.deepStrictEqual(
+				[
+					...new SimpleGeometryIterator(
+						geometrycollection,
+						featurecollection,
+					),
 				],
-			},
-			{
-				type: 'Polygon',
-				coordinates: [
-					[
-						[0, 0],
-						[0, 3],
-						[3, 3],
-						[3, 0],
-						[0, 0],
-					],
-					[
-						[1, 1],
-						[2, 1],
-						[2, 2],
-						[1, 2],
-						[1, 1],
-					],
-				],
-			},
-		];
-		assert.deepStrictEqual(
-			[
-				...new SimpleGeometryIterator(
-					geometrycollection,
-					featurecollection,
-				),
-			],
-			expected,
-		);
+				expected,
+			);
+		});
+
+		test('Feature with null geometry do not yield (nor throw)', () => {
+			const expected: Array<unknown> = [];
+			const feature: Feature = {
+				type: 'Feature',
+				geometry: null,
+				properties: null,
+			};
+			const featurecollection: FeatureCollection = {
+				type: 'FeatureCollection',
+				features: [feature],
+			};
+
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(featurecollection, feature)],
+				expected,
+			);
+		});
 	});
 
-	test('Feature with null geometry do not yield (nor throw)', () => {
-		const expected: Array<unknown> = [];
-		const feature: Feature = {
-			type: 'Feature',
-			geometry: null,
-			properties: null,
-		};
-		const featurecollection: FeatureCollection = {
-			type: 'FeatureCollection',
-			features: [feature],
-		};
+	describe('path iteration', () => {
+		test('Point', () => {
+			const expected = [[point, []]];
 
-		assert.deepStrictEqual(
-			[...new SimpleGeometryIterator(featurecollection, feature)],
-			expected,
-		);
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(point).paths()],
+				expected,
+			);
+		});
+
+		test('Point with MultiPoint yields points with index for MultiPoints synthesized Points', () => {
+			const expected = [
+				[point, []],
+				[
+					synth({ type: 'Point', coordinates: [1, 1] }, 0),
+					[multipoint],
+				],
+				[
+					synth({ type: 'Point', coordinates: [2, 2] }, 1),
+					[multipoint],
+				],
+			];
+
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(point, multipoint).paths()],
+				expected,
+			);
+		});
+
+		test('GeometryCollection with FeatureCollection yields all simple geometries in order', () => {
+			const geometry: GeometryCollection = {
+				type: 'GeometryCollection',
+				geometries: [
+					multipolygon,
+				],
+			};
+			const feature: Feature = {
+				type: 'Feature',
+				geometry: geometry,
+				properties: null,
+			};
+			const collection: GeoJSON = {
+				type: 'FeatureCollection',
+				features: [feature],
+			};
+			const expected = [
+				[
+					synth(
+						{
+							type: 'Polygon',
+							coordinates: [
+								[
+									[4, 4],
+									[4, 5],
+									[5, 5],
+									[5, 4],
+									[4, 4],
+								],
+							],
+						},
+						0,
+					),
+					[collection, feature, geometry, multipolygon],
+				],
+				[
+					synth(
+						{
+							type: 'Polygon',
+							coordinates: [
+								[
+									[0, 0],
+									[0, 3],
+									[3, 3],
+									[3, 0],
+									[0, 0],
+								],
+								[
+									[1, 1],
+									[2, 1],
+									[2, 2],
+									[1, 2],
+									[1, 1],
+								],
+							],
+						},
+						1,
+					),
+					[collection, feature, geometry, multipolygon],
+				],
+			];
+
+			assert.deepStrictEqual(
+				[...new SimpleGeometryIterator(collection).paths()],
+				expected,
+			);
+		});
 	});
 });

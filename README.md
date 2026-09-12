@@ -191,6 +191,13 @@ isStrictFeatureCollection(value, isStrictPoint);     // value is FeatureCollecti
 isStrictGeometryCollection(value, isStrictPoint);    // value is GeometryCollection<Point>
 ```
 
+### Antimeridian-crossing geometry
+
+`intersect`, `distance`, and the RFC 7946 §3.1.6 winding checks (`isStrictPolygon`,
+`isStrictMultiPolygon`) all correctly handle geometry that crosses the antimeridian (±180°
+longitude) without being split into a `MultiPolygon`/`MultiLineString` — RFC 7946 §3.1.9 permits
+this ("SHOULD be represented by cutting" is not a MUST). [Read how the fix works](./docs/antimeridian.md).
+
 ### intersect
 
 Verify whether the provided GeoJSON objects intersect.
@@ -219,18 +226,38 @@ console.log('point intersects feature', intersect(point, feature)); // true
 console.log('feature intersects point', intersect(feature, point)); // true
 ```
 
+For `Polygon` rings whose extent makes "which side is inside" genuinely ambiguous — for
+example a ring spanning most of the globe, where the bounded region and its complement are
+both valid interpretations — `intersect()` picks the smaller of the two regions by default,
+matching MongoDB's own `2dsphere` (non-strict-winding) default. RFC 7946 §3.1.6's winding
+direction breaks an exact tie between two equally-sized regions.
+
+A self-intersecting ring (edges that cross themselves — not a valid simple polygon) throws a
+`SelfIntersectingRingError` rather than silently returning an arbitrary result — see
+[Errors](#errors).
+
 ### distance
 
 Obtain the (shortest) distance in meters between two GeoJSON objects. Choose a formula based on your use case:
 
  - `haversine` (**default**) — geographic lon/lat coordinates, most use cases; good accuracy, good performance
- - `vincenty` — when you need higher accuracy than haversine and can guarantee inputs are not near-antipodal — points on nearly opposite sides of the Earth — (throws for those)
+ - `vincenty` — when you need higher accuracy than haversine and can guarantee inputs are not near-antipodal — points on nearly opposite sides of the Earth — (throws a `GeodesicConvergenceError` for those, see [Errors](#errors))
  - `karney` — when correctness is unconditional: near-antipodal inputs, or when you simply cannot afford a wrong answer; ~15 nm accuracy on WGS84
  - `cartesian` — when coordinates are in a metric projected system (e.g. RD New / EPSG:28992, UTM) where Euclidean distance is correct; note that projected coordinates are not valid strict GeoJSON (RFC 7946 requires geographic lon/lat, WGS84) — **do not use for geographic coordinates**
 
 Each formula is also exported as a standalone function for direct use and better tree-shaking.
 
-The formula argument accepts either a string or a custom `(a: Position, b: Position) => number` function — useful when you need a projection-specific calculation or want to plug in your own formula. The `PointToPointCalculation` type covers both and is exported for use in typed wrapper functions.
+`cartesian` and `haversine` both compute `radius × angular_separation` internally, and take that radius as an optional second-to-last argument, defaulting to this library's mean Earth radius (6,371,008.7714 m). This is for callers matching a specific sphere model rather than modelling Earth generically:
+
+```ts
+haversine(a, b, 6_378_100);     // MongoDB's own $nearSphere/2dsphere sphere radius (not WGS84)
+haversine(a, b, 1);             // raw angular separation in radians (unit sphere)
+cartesian(a, b, 180 / Math.PI); // cancels the internal degrees→radians step: raw planar Euclidean distance
+```
+
+`distance()` does not take a radius argument — use `cartesian`/`haversine` directly when you need one.
+
+The formula argument accepts either a string or a custom `(a: Position, b: Position) => number` function — useful when you need a projection-specific calculation or want to plug in your own formula. The `PointToPointCalculation` type covers both and is exported for use in typed wrapper functions. An unrecognized string throws an `UnknownCalculationError` (see [Errors](#errors)) rather than silently falling through.
 
 Usage: `distance(<GeoJSON>, <GeoJSON> [, <PointToPointCalculation>]): number`
 
@@ -281,6 +308,43 @@ Performance: karney shows absolute µs/call on this machine; other formulas show
 | near-antipodal | 100,000 | none · 3.25 µs | 34.9% · ~1x | 99.9% · ~18x | 100.0% · ~31x |
 
 Run your own numbers: `npm run compare:formulas -- --threshold <metres>` (current: 10 m)
+
+### Errors
+
+`intersect()` and `distance()` throw typed errors instead of returning a silently wrong or
+arbitrary result:
+
+| Error | Thrown when | Extra context |
+| --- | --- | --- |
+| `SelfIntersectingRingError` | A `Polygon` ring's edges cross themselves (not a valid simple polygon) | `edgeA`, `edgeB` — the two crossing edges, each a `[Position, Position]`; `path` (see below) |
+| `GeodesicConvergenceError` | `vincenty` fails to converge for near-antipodal inputs | `path`, `counterpart` (see below) |
+| `UnknownCalculationError` | An unrecognized `PointToPointCalculation` string is passed | — |
+
+`SelfIntersectingRingError` and `GeodesicConvergenceError` carry a `path: GeometryPath` — the
+chain of enclosing GeoJSON objects (e.g. `[FeatureCollection, Feature, MultiPolygon]`) leading
+down to the specific simple geometry that caused the error. This matters once your input is a
+`FeatureCollection`/`GeometryCollection`/`Multi*` — without it you'd only know *that* something
+failed, not which geometry among possibly many. `GeodesicConvergenceError` also carries a
+`counterpart: GeometryPath`, pointing to the *other* geometry involved in the failing
+calculation — unlike a self-intersecting ring, a convergence failure isn't caused by one side
+alone.
+
+```ts
+import { distance, SelfIntersectingRingError } from '@konfirm/geojson';
+
+try {
+    distance(featureCollection, otherFeature);
+} catch (error) {
+    if (error instanceof SelfIntersectingRingError) {
+        console.log('bad ring found at', error.path);
+        console.log('crossing edges', error.edgeA, error.edgeB);
+    }
+}
+```
+
+`GeodesicConvergenceError` extends the built-in `EvalError`, matching what `vincenty` has always
+thrown for this case (see the [migration guide](./MIGRATION.md)) — existing
+`instanceof EvalError` checks keep working.
 
 ### SimpleGeometryIterator
 
@@ -386,6 +450,20 @@ const simplified = [...new SimpleGeometryIterator(multipoint, geometrycollection
         },
     ]
 */
+```
+
+`.paths()` yields the same simple geometries alongside the chain of GeoJSON objects each one was
+found inside — `[SimpleGeometry, GeometryPath][]` instead of `SimpleGeometry[]`. Use it when you
+need to know *where* a geometry came from, not just what it is (this is how `distance()` locates
+the geometry behind a `SelfIntersectingRingError`/`GeodesicConvergenceError`, see [Errors](#errors)):
+
+```ts
+import { SimpleGeometryIterator } from '@konfirm/geojson';
+
+for (const [simple, path] of new SimpleGeometryIterator(featurecollection).paths()) {
+    console.log(simple.type, 'found via', path.map((geo) => geo.type));
+    // 'LineString' found via ['FeatureCollection', 'Feature']
+}
 ```
 
 ## Contributing

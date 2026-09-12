@@ -4,10 +4,13 @@ import {
 	EARTH_RADIUS_MAJOR,
 	EARTH_RADIUS_MINOR,
 } from '../Constants';
+import { GeodesicConvergenceError } from '../GeoJSON/Error/GeodesicConvergenceError';
+import { UnknownCalculationError } from '../GeoJSON/Error/UnknownCalculationError';
 import type { Point } from '../GeoJSON/Geometry/Point';
-import { createBoxFromCoordinates, isWithinBox } from './Box';
+import { alignPath, alignPosition, unwrapPath } from './Antimeridian';
 import { karney } from './Geodesic';
 import { squared } from './Numeric';
+import { isPositionInSphericalRing } from './Spherical';
 
 const D2R = Math.PI / 180;
 const π = Math.PI;
@@ -30,13 +33,15 @@ const EARTH_INVERSE_FLATTENING = 1 / EARTH_FLATTENING;
 export function cartesian(
 	[λa, φa]: Point['coordinates'],
 	[λb, φb]: Point['coordinates'],
+	radius: number = EARTH_RADIUS,
 ): number {
-	return EARTH_RADIUS * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)));
+	return radius * rad(Math.sqrt(squared(λb - λa) + squared(φb - φa)));
 }
 
 export function haversine(
 	[λa, φa]: Point['coordinates'],
 	[λb, φb]: Point['coordinates'],
+	radius: number = EARTH_RADIUS,
 ): number {
 	//https://www.movable-type.co.uk/scripts/latlong.html
 	const Δ =
@@ -45,7 +50,7 @@ export function haversine(
 			Math.cos(rad(φb)) *
 			squared(Math.sin(rad(λb - λa) / 2));
 
-	return EARTH_RADIUS * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
+	return radius * Math.atan2(Math.sqrt(Δ), Math.sqrt(1 - Δ)) * 2;
 }
 
 export function vincenty(
@@ -106,7 +111,9 @@ export function vincenty(
 		const Δλ = Math.abs(λ - λʹ);
 		// 2-cycle detection (floating-point fixed point) or hard iteration cap
 		if ((Δλ !== 0 && Δλ === prevΔλ) || ++iterations > 1000)
-			throw new EvalError('Vincenty formula failed to converge');
+			throw new GeodesicConvergenceError(
+				'Vincenty formula failed to converge',
+			);
 		prevΔλ = Δλ;
 	} while (Math.abs(λ - λʹ) > 1e-12); // TV: 'iterate until negligible change in λ' (≈0.006mm)
 
@@ -148,7 +155,9 @@ export function getClosestPointOnLineByPoint(
 	point: Point['coordinates'],
 	line: [Point['coordinates'], Point['coordinates']],
 ): Point['coordinates'] {
-	const [[px, py], [ax, ay], [bx, by]] = [point, ...line];
+	const unwrappedLine = unwrapPath(line);
+	const [[ax, ay], [bx, by]] = unwrappedLine;
+	const [px, py] = alignPosition(point, ax);
 	const [abx, aby] = [bx - ax, by - ay];
 	const [apx, apy] = [px - ax, py - ay];
 	const t = constrain(
@@ -157,7 +166,7 @@ export function getClosestPointOnLineByPoint(
 		1,
 	);
 
-	return t === 0 || t === 1 ? line[t] : [ax + abx * t, ay + aby * t];
+	return t === 0 || t === 1 ? unwrappedLine[t] : [ax + abx * t, ay + aby * t];
 }
 
 export function getDistanceOfPointToPoint(
@@ -174,7 +183,9 @@ export function getDistanceOfPointToPoint(
 		return calc(a, b);
 	}
 
-	throw new Error(`Not a PointToPoint calculation function ${calculation}`);
+	throw new UnknownCalculationError(
+		`Not a PointToPoint calculation function ${calculation}`,
+	);
 }
 
 export function getDistanceOfPointToLine(
@@ -206,8 +217,10 @@ export function isLinesCrossing(
 	a: [Point['coordinates'], Point['coordinates']],
 	b: [Point['coordinates'], Point['coordinates']],
 ): boolean {
-	const [[a1x, a1y], [a2x, a2y]] = a;
-	const [[b1x, b1y], [b2x, b2y]] = b;
+	const ua = unwrapPath(a);
+	const ub = alignPath(unwrapPath(b), ua[0][0]);
+	const [[a1x, a1y], [a2x, a2y]] = ua;
+	const [[b1x, b1y], [b2x, b2y]] = ub;
 	const [s1x, s1y, s2x, s2y] = [a2x - a1x, a2y - a1y, b2x - b1x, b2y - b1y];
 	const s =
 		(-s1y * (a1x - b1x) + s1x * (a1y - b1y)) / (-s2x * s1y + s1x * s2y);
@@ -229,27 +242,8 @@ export function isPointInRing(
 	p: Point['coordinates'],
 	ring: Array<Point['coordinates']>,
 ): boolean {
-	if (!isWithinBox(p, createBoxFromCoordinates(ring))) {
-		return false;
-	}
-
-	const { length } = ring;
-	const odd = ring.reduce((odd, a, i) => {
-		const b = ring[(length + i - 1) % length];
-
-		return ((a[1] < p[1] && b[1] >= p[1]) ||
-			(b[1] < p[1] && a[1] >= p[1])) &&
-			(a[0] <= p[0] || b[0] <= p[0])
-			? odd ^
-					Number(
-						a[0] + ((p[1] - a[1]) / (b[1] - a[1])) * (b[0] - a[0]) <
-							p[0],
-					)
-			: odd;
-	}, 0);
-
 	return (
-		odd !== 0 ||
+		isPositionInSphericalRing(p, ring) ||
 		ring.slice(1).some((a, index) => isPointOnLine(p, [ring[index], a]))
 	);
 }
