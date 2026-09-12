@@ -50,6 +50,14 @@ jobs:
         if: github.ref_name == 'release'
         run: |
           npm run release
+          version=$(node -p "require('./package.json').version")
+          if [[ "$version" == *-* ]]; then
+            # No new commits since the last (pre)release tag — release-it had
+            # nothing to bump and left package.json on its prerelease version.
+            # Graduate it to stable explicitly rather than publishing a
+            # prerelease under the "latest" npm tag.
+            npx release-it "${version%%-*}" --ci
+          fi
           npm publish --provenance
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
