@@ -3,6 +3,9 @@ import { describe, test } from 'node:test';
 import type { Improbability } from '../../../test/helper/spec';
 import type { Feature, LineString, Point, Polygon } from '../../main';
 import { EARTH_RADIUS } from '../Constants';
+import { GeodesicConvergenceError } from '../GeoJSON/Error/GeodesicConvergenceError';
+import { SelfIntersectingRingError } from '../GeoJSON/Error/SelfIntersectingRingError';
+import { UnknownCalculationError } from '../GeoJSON/Error/UnknownCalculationError';
 import { cartesian, distance, haversine, karney, vincenty } from './Distance';
 
 const amsterdam: Feature = {
@@ -203,6 +206,148 @@ describe('distance', () => {
 				distance({ type: 'Point', coordinates: [180, 1] }, poly),
 				0,
 			);
+		});
+	});
+
+	describe('error propagation', () => {
+		// A classic bowtie: edges (0,0)-(2,2) and (2,0)-(0,2) cross.
+		const bowtie: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[0, 0],
+					[2, 2],
+					[2, 0],
+					[0, 2],
+					[0, 0],
+				],
+			],
+		};
+		const square: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[10, 10],
+					[10, 12],
+					[12, 12],
+					[12, 10],
+					[10, 10],
+				],
+			],
+		};
+		const point: Point = { type: 'Point', coordinates: [1, 1] };
+
+		describe('SelfIntersectingRingError', () => {
+			test('PolygonPoint: no PolygonPolygon marker involved, resolves via isPolygon(a)', () => {
+				assert.throws(
+					() => distance(bowtie, point),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+
+			test('PointPolygon (reversed args): same fallback, but resolves via isPolygon(b)', () => {
+				assert.throws(
+					() => distance(point, bowtie),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+
+			test('PolygonPolygon: self-intersecting a throws on the first sub-call', () => {
+				assert.throws(
+					() => distance(bowtie, square),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+
+			test('PolygonPolygon: self-intersecting b only surfaces on the second sub-call', () => {
+				assert.throws(
+					() => distance(square, bowtie),
+					(error: unknown) => {
+						assert.ok(error instanceof SelfIntersectingRingError);
+						assert.deepStrictEqual(error.path, [bowtie]);
+						return true;
+					},
+				);
+			});
+		});
+
+		describe('other error types (PolygonPolygon pass-through)', () => {
+			// No self-intersection anywhere here
+			const small: Polygon = {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[4, 4],
+						[4, 6],
+						[6, 6],
+						[6, 4],
+						[4, 4],
+					],
+				],
+			};
+			const big: Polygon = {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[0, 0],
+						[0, 10],
+						[10, 10],
+						[10, 0],
+						[0, 0],
+					],
+				],
+			};
+
+			test('a non-SelfIntersectingRingError from the first sub-call is rethrown untagged', () => {
+				assert.throws(
+					() => distance(small, big, <Improbability>'invalid'),
+					(error: unknown) => {
+						assert.ok(error instanceof UnknownCalculationError);
+						assert.strictEqual(error.path, undefined);
+						return true;
+					},
+				);
+			});
+
+			test('a non-SelfIntersectingRingError from the second sub-call is rethrown untagged', () => {
+				assert.throws(
+					() => distance(big, small, <Improbability>'invalid'),
+					(error: unknown) => {
+						assert.ok(error instanceof UnknownCalculationError);
+						assert.strictEqual(error.path, undefined);
+						return true;
+					},
+				);
+			});
+		});
+
+		describe('GeodesicConvergenceError', () => {
+			test('vincenty near-antipodal failure attaches path and counterpart', () => {
+				const a: Point = { type: 'Point', coordinates: [0, 0] };
+				const b: Point = { type: 'Point', coordinates: [179.7, 0.5] };
+
+				assert.throws(
+					() => distance(a, b, 'vincenty'),
+					(error: unknown) => {
+						assert.ok(error instanceof GeodesicConvergenceError);
+						assert.deepStrictEqual(error.path, [a]);
+						assert.deepStrictEqual(error.counterpart, [b]);
+						return true;
+					},
+				);
+			});
 		});
 	});
 });

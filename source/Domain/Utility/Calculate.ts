@@ -4,11 +4,13 @@ import {
 	EARTH_RADIUS_MAJOR,
 	EARTH_RADIUS_MINOR,
 } from '../Constants';
+import { GeodesicConvergenceError } from '../GeoJSON/Error/GeodesicConvergenceError';
+import { UnknownCalculationError } from '../GeoJSON/Error/UnknownCalculationError';
 import type { Point } from '../GeoJSON/Geometry/Point';
 import { alignPath, alignPosition, unwrapPath } from './Antimeridian';
-import { createBoxFromCoordinates, isWithinBox } from './Box';
 import { karney } from './Geodesic';
 import { squared } from './Numeric';
+import { isPositionInSphericalRing } from './Spherical';
 
 const D2R = Math.PI / 180;
 const π = Math.PI;
@@ -109,7 +111,9 @@ export function vincenty(
 		const Δλ = Math.abs(λ - λʹ);
 		// 2-cycle detection (floating-point fixed point) or hard iteration cap
 		if ((Δλ !== 0 && Δλ === prevΔλ) || ++iterations > 1000)
-			throw new EvalError('Vincenty formula failed to converge');
+			throw new GeodesicConvergenceError(
+				'Vincenty formula failed to converge',
+			);
 		prevΔλ = Δλ;
 	} while (Math.abs(λ - λʹ) > 1e-12); // TV: 'iterate until negligible change in λ' (≈0.006mm)
 
@@ -179,7 +183,9 @@ export function getDistanceOfPointToPoint(
 		return calc(a, b);
 	}
 
-	throw new Error(`Not a PointToPoint calculation function ${calculation}`);
+	throw new UnknownCalculationError(
+		`Not a PointToPoint calculation function ${calculation}`,
+	);
 }
 
 export function getDistanceOfPointToLine(
@@ -236,35 +242,8 @@ export function isPointInRing(
 	p: Point['coordinates'],
 	ring: Array<Point['coordinates']>,
 ): boolean {
-	const unwrapped = unwrapPath(ring);
-	const point = alignPosition(p, unwrapped[0][0]);
-	const box = createBoxFromCoordinates(unwrapped);
-
-	if (!isWithinBox(point, box)) {
-		return false;
-	}
-
-	const { length } = unwrapped;
-	const odd = unwrapped.reduce((odd, a, i) => {
-		const b = unwrapped[(length + i - 1) % length];
-
-		return ((a[1] < point[1] && b[1] >= point[1]) ||
-			(b[1] < point[1] && a[1] >= point[1])) &&
-			(a[0] <= point[0] || b[0] <= point[0])
-			? odd ^
-					Number(
-						a[0] +
-							((point[1] - a[1]) / (b[1] - a[1])) *
-								(b[0] - a[0]) <
-							point[0],
-					)
-			: odd;
-	}, 0);
-
 	return (
-		odd !== 0 ||
-		unwrapped
-			.slice(1)
-			.some((a, index) => isPointOnLine(point, [unwrapped[index], a]))
+		isPositionInSphericalRing(p, ring) ||
+		ring.slice(1).some((a, index) => isPointOnLine(p, [ring[index], a]))
 	);
 }
