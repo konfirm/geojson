@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { LinearRing } from '../GeoJSON/Concept/LinearRing';
 import type { Position } from '../GeoJSON/Concept/Position';
-import { isPositionInSphericalRing } from './Spherical';
+import { isPositionInSphericalRing, ringArea } from './Spherical';
 
 // Regression cases for https://github.com/konfirm/geojson/issues/18
 //
@@ -209,6 +209,126 @@ describe('Domain/Utility/Spherical', () => {
 			test('point c is inside', () => {
 				assert.equal(isPositionInSphericalRing([0, 65], ring), true);
 			});
+		});
+
+		describe('band ring closed by vertical edges (issue #22)', () => {
+			// A latitude band from -60 to 60, spanning -170 to 170 longitude
+			// (not a full 360-degree circle — closed by two vertical meridian
+			// edges at lon +-170 instead of wrapping). The band itself covers
+			// ~82% of the sphere; the smaller region is its complement (both
+			// polar caps beyond +-60 plus the thin longitude sliver between
+			// them near the antimeridian).
+			//
+			// A prior vertex-centroid heuristic for "which side is smaller"
+			// picked the band (the *larger* region) here, because the
+			// centroid of this ring's own vertices sits inside the band
+			// regardless of which region is actually smaller by area — wrong
+			// regardless of winding, not a winding bug. Expected values are
+			// real MongoDB 8.3.9 $geoWithin results, default mode (no
+			// crs:strictwinding), via mongo-catalog's geo-antipodal ground
+			// truth: both windings agree, matching the smaller-area
+			// convention exactly once the region is identified correctly.
+			function parallel(
+				lat: number,
+				lonFrom: number,
+				lonTo: number,
+				step: number,
+			): Array<Position> {
+				const points: Array<Position> = [];
+				const dir = lonTo >= lonFrom ? step : -step;
+				for (
+					let lon = lonFrom;
+					dir > 0 ? lon <= lonTo : lon >= lonTo;
+					lon += dir
+				)
+					points.push([lon, lat]);
+				return points;
+			}
+
+			const forwardRing: LinearRing = [
+				...parallel(-60, -170, 170, 10),
+				...parallel(60, 170, -170, 10),
+			] as LinearRing;
+			forwardRing.push(forwardRing[0]);
+			const reversedRing = [...forwardRing].reverse();
+
+			const deepInBand: Position = [0, 0];
+			const deepInPolarCap: Position = [45, 75];
+
+			test('forward winding: point deep in the band is outside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInBand, forwardRing),
+					false,
+				);
+			});
+			test('forward winding: point deep in the polar cap is inside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInPolarCap, forwardRing),
+					true,
+				);
+			});
+			test('reversed winding: point deep in the band is outside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInBand, reversedRing),
+					false,
+				);
+			});
+			test('reversed winding: point deep in the polar cap is inside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInPolarCap, reversedRing),
+					true,
+				);
+			});
+		});
+	});
+
+	describe('ringArea', () => {
+		test('a full hemisphere is 2*PI steradians', () => {
+			const equator: LinearRing = parallelRing(0);
+
+			assert.ok(Math.abs(ringArea(equator) - 2 * Math.PI) < 1e-9);
+		});
+
+		test('a small triangle is a small fraction of 4*PI', () => {
+			const triangle: LinearRing = [
+				[0, 0],
+				[10, 0],
+				[5, 10],
+				[0, 0],
+			];
+
+			const area = ringArea(triangle);
+
+			assert.ok(area > 0 && area < 0.1);
+		});
+
+		test('a spherical cap matches the closed-form cap-area formula', () => {
+			// Cap area (steradians) beyond latitude phi = 2*PI*(1 - sin(phi)).
+			// A 1-degree step keeps the ring's polygon-approximation-of-a-
+			// circle error well under the tolerance below; parallelRing's
+			// usual 10-degree step is too coarse for this comparison.
+			const ring = parallelRing(60, 1);
+			const expected = 2 * Math.PI * (1 - Math.sin((60 * Math.PI) / 180));
+
+			assert.ok(Math.abs(ringArea(ring) - expected) < 1e-4);
+		});
+
+		test("reversing a ring gives the complementary region's area", () => {
+			// ringArea reports the literal, as-wound interior (issue #23 asks
+			// for exactly this — the raw check MongoDB's own smaller-region
+			// heuristic is based on), so it is winding-*dependent* by design:
+			// reversing a non-tied ring flips which of the two candidate
+			// regions is "interior", not just the sign of an otherwise-fixed
+			// number. The two areas must still sum to a full sphere.
+			const ring = parallelRing(1);
+
+			assert.ok(
+				Math.abs(
+					ringArea(ring) +
+						ringArea([...ring].reverse()) -
+						4 * Math.PI,
+				) < 1e-9,
+			);
 		});
 	});
 });

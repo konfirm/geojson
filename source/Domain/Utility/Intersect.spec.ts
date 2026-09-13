@@ -155,4 +155,51 @@ describe('intersect', () => {
 			);
 		});
 	});
+
+	describe('band ring closed by vertical edges (issue #22 wiring check)', () => {
+		// Not a correctness suite — that lives in Spherical.spec.ts against
+		// isPositionInSphericalRing directly. Just confirms intersect() still
+		// wires down to it correctly for a ring shaped like a wide latitude
+		// band (not a full 360-degree circle), where a vertex-centroid
+		// heuristic used to pick the larger region as "inside".
+		//
+		// Needs the same dense-vertex construction as the correctness suite:
+		// a geodesic edge between two far-apart same-latitude points cuts
+		// straight across (toward the pole), it doesn't follow the parallel —
+		// a coarse 4-vertex rectangle would silently test a different shape.
+		function parallel(
+			lat: number,
+			lonFrom: number,
+			lonTo: number,
+			step: number,
+		) {
+			const points: Array<[number, number]> = [];
+			const dir = lonTo >= lonFrom ? step : -step;
+			for (
+				let lon = lonFrom;
+				dir > 0 ? lon <= lonTo : lon >= lonTo;
+				lon += dir
+			)
+				points.push([lon, lat]);
+			return points;
+		}
+
+		const band = [
+			...parallel(-60, -170, 170, 10),
+			...parallel(60, 170, -170, 10),
+		];
+		const ring: Polygon = {
+			type: 'Polygon',
+			coordinates: [[...band, band[0]]],
+		};
+
+		test('point deep in the band does not intersect', () => {
+			assert.ok(!intersect({ type: 'Point', coordinates: [0, 0] }, ring));
+		});
+		test('point deep in the polar cap intersects', () => {
+			assert.ok(
+				intersect({ type: 'Point', coordinates: [45, 75] }, ring),
+			);
+		});
+	});
 });
