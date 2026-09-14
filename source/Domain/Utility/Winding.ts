@@ -1,28 +1,29 @@
 import { isArrayOfType } from '@konfirm/guard';
 import { isPosition, type Position } from '../GeoJSON/Concept/Position';
-import { unwrapPath } from './Antimeridian';
-
-// Standard shoelace formula: positive = CCW (RFC 7946 exterior), negative = CW (hole).
-// Positions are unwrapped across the antimeridian first (RFC 7946 §3.1.9),
-// otherwise a ring crossing ±180° computes a signed area for the wrong,
-// near-globe-spanning shape and can come out with the opposite sign.
-function shoelace(positions: Array<Position>): number {
-	return unwrapPath(positions).reduce((carry, [x, y], i, a) => {
-		const [nx, ny] = a[(i + 1) % a.length];
-
-		return carry + (x * ny - nx * y);
-	}, 0);
-}
+import { orientedRingArea } from './Spherical';
 
 const isPositionArray = isArrayOfType<Array<Position>>(isPosition);
 
+// Counterclockwise means the ring's own interior is on its left, i.e. that
+// side is at most a hemisphere; clockwise means the *complement* is on its
+// left, i.e. that side is more than a hemisphere. 2*PI, not 0, is therefore the
+// dividing line. A ring with fewer than 3 distinct vertices has no orientation
+// at all.
 export function isClockwiseWinding<T extends Array<Position>>(
 	value: unknown,
 ): value is T {
-	return isPositionArray(value) && shoelace(value) <= 0;
+	if (!isPositionArray(value)) return false;
+
+	const area = orientedRingArea(value);
+
+	return area === null || area >= 2 * Math.PI;
 }
 export function isCounterClockwiseWinding<T extends Array<Position>>(
 	value: unknown,
 ): value is T {
-	return isPositionArray(value) && shoelace(value) >= 0;
+	if (!isPositionArray(value)) return false;
+
+	const area = orientedRingArea(value);
+
+	return area === null || area <= 2 * Math.PI;
 }
