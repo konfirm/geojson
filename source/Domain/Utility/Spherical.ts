@@ -1,3 +1,4 @@
+import { isClosedRing } from '../GeoJSON/Concept/LinearRing';
 import type { Position } from '../GeoJSON/Concept/Position';
 import { SelfIntersectingRingError } from '../GeoJSON/Error/SelfIntersectingRingError';
 
@@ -8,6 +9,11 @@ type SpherePosition = [number, number, number];
 // otherwise-relative crossing count. Not a pole, not a round number,
 // on purpose.
 const ORIGIN_POSITION: Position = [37.294613, 12.847291];
+// Float noise around an exact hemisphere tie (2*PI) computes a few ULPs
+// off, not exactly on it; this absorbs that without hiding any tie
+// anyone would actually care about
+const HEMISPHERE_TIE_EPSILON = 1e-9;
+const FULL_SPHERE = 4 * Math.PI;
 const D2R = Math.PI / 180;
 
 function toSpherePosition([λ, φ]: Position): SpherePosition {
@@ -148,9 +154,12 @@ function turningAngle(
 	);
 }
 
-// Area the ring encloses as traversed, in steradians
-// Gauss-Bonnet: area = 2*PI minus total turning around the boundary.
-// Negative if the ring is reversed.
+// Area of the ring's own traversal-implied ("left of travel") side, in
+// steradians, always in [0, 4*PI) — never negative. A small counter-
+// clockwise ring's own (small, obviously-enclosed) interior is on its
+// left, so this comes out small; the same shape wound clockwise has its
+// *complement* on the left instead, so this comes out close to 4*PI, not
+// negative.
 function signedRingArea(ring: Array<SpherePosition>): number {
 	const { length } = ring;
 	const totalTurning = ring.reduce(
@@ -164,14 +173,10 @@ function signedRingArea(ring: Array<SpherePosition>): number {
 		0,
 	);
 
-	return 2 * Math.PI - totalTurning;
-}
-
-// Unsigned ring area in steradians, 0 to 4*PI (whole sphere). Exported per
-// issue #23 so consumers can copy MongoDB's "invert above a hemisphere"
-// rule without redoing the math.
-export function ringArea(ring: Array<Position>): number {
-	return Math.abs(signedRingArea(ring.slice(0, -1).map(toSpherePosition)));
+	return (
+		(((2 * Math.PI - totalTurning) % FULL_SPHERE) + FULL_SPHERE) %
+		FULL_SPHERE
+	);
 }
 
 // findSelfIntersection is O(n²) and re-running it per point against the
@@ -181,19 +186,64 @@ export function ringArea(ring: Array<Position>): number {
 // arrays share an entry.
 const selfIntersectionCache = new Map<string, [number, number] | null>();
 
-// Point-in-ring via crossing-count parity, done on the sphere
-export function isPositionInSphericalRing(
-	position: Position,
-	ring: Array<Position>,
-): boolean {
-	const vertices = ring.slice(0, -1).map(toSpherePosition);
-	const key = JSON.stringify(ring);
+function getSelfIntersection(
+	key: string,
+	vertices: Array<SpherePosition>,
+): [number, number] | null {
 	let crossing = selfIntersectionCache.get(key);
 
 	if (crossing === undefined) {
 		crossing = findSelfIntersection(vertices);
 		selfIntersectionCache.set(key, crossing);
 	}
+
+	return crossing;
+}
+
+// Area of a ring's own traversal-implied side, at the Position level.
+// Returns null for fewer than 3 distinct vertices: a point or
+// a line segment doesn't enclose anything
+export function orientedRingArea(ring: Array<Position>): number | null {
+	const open = isClosedRing(ring) ? ring.slice(0, -1) : ring;
+
+	if (open.length < 3) return null;
+
+	const vertices = open.map(toSpherePosition);
+
+	// A self-intersecting ("bowtie") ring has no single left/right side —
+	// Gauss-Bonnet assumes a simple closed curve and produces some
+	// specific-looking but meaningless number for one that crosses itself,
+	// not a natural tie the way a flat shoelace sum's own cancellation
+	// happens to land on exactly 0 for a *balanced* self-crossing shape.
+	return getSelfIntersection(JSON.stringify(ring), vertices)
+		? null
+		: signedRingArea(vertices);
+}
+
+// Unsigned ring area in steradians, 0 to 4*PI (whole sphere). This is the
+// ring's literal, as-wound area — unlike isPositionInSphericalRing/intersect(),
+// it does not correct for winding, so reversing a ring's vertex order can
+// change the result. Fewer than 3 distinct vertices: reported as 0 which
+// differs from orientedRingArea.
+export function ringArea(ring: Array<Position>): number {
+	const area = orientedRingArea(ring);
+
+	return area === null ? 0 : Math.abs(area);
+}
+
+// Whether a ring's own as-wound area covers more than half the sphere. A thin
+// wrapper over ringArea()
+export function exceedsHemisphere(ring: Array<Position>): boolean {
+	return ringArea(ring) > 2 * Math.PI + HEMISPHERE_TIE_EPSILON;
+}
+
+// Point-in-ring via crossing-count parity, done on the sphere
+export function isPositionInSphericalRing(
+	position: Position,
+	ring: Array<Position>,
+): boolean {
+	const vertices = ring.slice(0, -1).map(toSpherePosition);
+	const crossing = getSelfIntersection(JSON.stringify(ring), vertices);
 
 	if (crossing) {
 		const [i, j] = crossing;
@@ -214,11 +264,5 @@ export function isPositionInSphericalRing(
 	// edgeReference sits on the ring's traversal side. If that side is the
 	// bigger one (over a hemisphere), the smaller-region rule makes the
 	// *other* side inside: flip. Ties drop through and winding decides.
-	// The epsilon covers float noise around 2*PI without hiding any tie
-	// anyone would actually care about.
-	const referenceSideExceedsHemisphere = ringArea(ring) > 2 * Math.PI + 1e-9;
-
-	return referenceSideExceedsHemisphere
-		? !sameSideAsReference
-		: sameSideAsReference;
+	return exceedsHemisphere(ring) ? !sameSideAsReference : sameSideAsReference;
 }

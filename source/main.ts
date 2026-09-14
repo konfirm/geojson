@@ -63,3 +63,4 @@ export {
 	vincenty,
 } from './Domain/Utility/Distance';
 export { intersect } from './Domain/Utility/Intersect';
+export { exceedsHemisphere, ringArea } from './Domain/Utility/Spherical';

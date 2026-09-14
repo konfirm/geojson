@@ -236,6 +236,34 @@ A self-intersecting ring (edges that cross themselves — not a valid simple pol
 `SelfIntersectingRingError` rather than silently returning an arbitrary result — see
 [Errors](#errors).
 
+### ringArea / exceedsHemisphere
+
+The same hemisphere check `intersect()` uses internally to pick the smaller of a ring's two
+candidate regions (see above), exposed directly for consumers who need to replicate that
+decision themselves — for example, to match MongoDB's own `2dsphere` (non-strict-winding)
+default without a separate reimplementation of the underlying spherical-area math.
+
+Usage: `ringArea(<LinearRing>): number` (steradians, `0` to `4 * Math.PI` for the whole sphere)
+Usage: `exceedsHemisphere(<LinearRing>): boolean`
+
+```ts
+import { ringArea, exceedsHemisphere } from '@konfirm/geojson';
+
+const ring = [[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]];
+
+console.log(ringArea(ring)); // a small fraction of 4*PI
+console.log(exceedsHemisphere(ring)); // false
+```
+
+`ringArea` reports the ring's literal, as-wound area — unlike `intersect()`, it does **not**
+correct for winding. Reversing a ring's vertex order (or simply authoring it the other way
+around, as a clockwise-vs-counterclockwise ring for the same shape above would) changes *which*
+of the two candidate regions is measured, so the result can flip to the area of the
+complementary region — for the same small box above wound the other way, `ringArea` reports
+nearly `4 * Math.PI` (the rest of the sphere), not a small number. `exceedsHemisphere(ring)` is
+a self-documenting shorthand for `ringArea(ring) > 2 * Math.PI`, matching the specific question
+MongoDB's default `$geoWithin` behavior answers before inverting to the smaller region.
+
 ### distance
 
 Obtain the (shortest) distance in meters between two GeoJSON objects. Choose a formula based on your use case:
