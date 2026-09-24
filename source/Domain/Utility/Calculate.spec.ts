@@ -231,6 +231,8 @@ describe('Domain/Utility/Calculate', () => {
 		});
 
 		test('accepts a custom function', () => {
+			// Non-crossing lines, so isLinesCrossing's 0-shortcut doesn't
+			// fire and the custom function actually gets called.
 			assert.strictEqual(
 				getDistanceOfLineToLine(
 					[
@@ -238,8 +240,8 @@ describe('Domain/Utility/Calculate', () => {
 						[1, 1],
 					],
 					[
-						[0, 0],
-						[1, 1],
+						[0, 2],
+						[1, 3],
 					],
 					() => Math.PI,
 				),
@@ -371,6 +373,85 @@ describe('Domain/Utility/Calculate', () => {
 			test('returns true for two lines genuinely crossing at the dateline, in both argument orders', () => {
 				assert.ok(isLinesCrossing(dateline, dateline2));
 				assert.ok(isLinesCrossing(dateline2, dateline));
+			});
+		});
+
+		describe('collinear, overlapping lines (issue #30)', () => {
+			// Both lines lie on the same line (slope 1, through [5.9, 52]).
+			// lineA runs just southwest to just northeast of that point;
+			// lineB starts exactly there and continues further northeast.
+			// Their overlap ([5.9,52] to [5.905,52.005]) is a real shared
+			// stretch, not just a touching endpoint.
+			const lineA: [[number, number], [number, number]] = [
+				[5.8950000000000005, 51.995],
+				[5.905, 52.004999999999995],
+			];
+			const lineB: [[number, number], [number, number]] = [
+				[5.9, 52],
+				[6.9, 53],
+			];
+
+			test('detects the overlap, in both argument orders', () => {
+				assert.ok(isLinesCrossing(lineA, lineB));
+				assert.ok(isLinesCrossing(lineB, lineA));
+			});
+
+			test('still detects it with either line reversed', () => {
+				const reversed: [[number, number], [number, number]] = [
+					lineB[1],
+					lineB[0],
+				];
+
+				assert.ok(isLinesCrossing(lineA, reversed));
+				assert.ok(isLinesCrossing(reversed, lineA));
+			});
+
+			test('parallel but offset lines (never touching) do not cross', () => {
+				const a: [[number, number], [number, number]] = [
+					[0, 0],
+					[1, 1],
+				];
+				const b: [[number, number], [number, number]] = [
+					[0, 1],
+					[1, 2],
+				];
+
+				assert.ok(!isLinesCrossing(a, b));
+			});
+
+			test('collinear but disjoint segments (same line, no overlap) do not cross', () => {
+				const a: [[number, number], [number, number]] = [
+					[0, 0],
+					[1, 1],
+				];
+				const b: [[number, number], [number, number]] = [
+					[5, 5],
+					[6, 6],
+				];
+
+				assert.ok(!isLinesCrossing(a, b));
+			});
+
+			test('collinear segments touching at exactly one shared endpoint do cross', () => {
+				const a: [[number, number], [number, number]] = [
+					[0, 0],
+					[1, 1],
+				];
+				const b: [[number, number], [number, number]] = [
+					[1, 1],
+					[2, 2],
+				];
+
+				assert.ok(isLinesCrossing(a, b));
+			});
+
+			test('identical lines cross', () => {
+				const a: [[number, number], [number, number]] = [
+					[0, 0],
+					[1, 1],
+				];
+
+				assert.ok(isLinesCrossing(a, a));
 			});
 		});
 	});

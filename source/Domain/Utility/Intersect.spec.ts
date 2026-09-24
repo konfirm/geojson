@@ -228,6 +228,25 @@ describe('intersect', () => {
 			};
 			assert.ok(!intersect(a, b));
 		});
+
+		test('collinear, overlapping lines intersect (issue #30)', () => {
+			const a: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[5.8950000000000005, 51.995],
+					[5.905, 52.004999999999995],
+				],
+			};
+			const b: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[5.9, 52],
+					[6.9, 53],
+				],
+			};
+			assert.ok(intersect(a, b));
+			assert.ok(intersect(b, a));
+		});
 	});
 
 	describe('geometry crossing the antimeridian', () => {
