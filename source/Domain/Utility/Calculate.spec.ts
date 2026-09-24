@@ -393,6 +393,20 @@ describe('Domain/Utility/Calculate', () => {
 				);
 			});
 		});
+
+		test('agrees on a point exactly on an antimeridian-wrapping edge regardless of endpoint order', () => {
+			const point: [number, number] = [180, 0];
+			const edge: [[number, number], [number, number]] = [
+				[170, 0],
+				[-180, 0],
+			];
+
+			assert.ok(isPointOnLine(point, edge), 'forward edge order');
+			assert.ok(
+				isPointOnLine(point, [edge[1], edge[0]]),
+				'reversed edge order',
+			);
+		});
 	});
 
 	describe('isPointInRing', () => {

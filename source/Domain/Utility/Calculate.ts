@@ -193,9 +193,15 @@ export function getDistanceOfPointToLine(
 	line: [Point['coordinates'], Point['coordinates']],
 	calculation: PointToPointCalculation,
 ): number {
+	const closest = getClosestPointOnLineByPoint(point, line);
+	const aligned =
+		Math.abs(point[0] - closest[0]) > 180
+			? alignPosition(point, closest[0])
+			: point;
+
 	return getDistanceOfPointToPoint(
-		point,
-		getClosestPointOnLineByPoint(point, line),
+		aligned,
+		closest,
 		calculation,
 	);
 }
