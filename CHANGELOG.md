@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.2.0-beta.1](https://github.com/konfirm/geojson/compare/v2.2.0-beta.0...v2.2.0-beta.1) (2026-09-24)
+
+### Bug Fixes
+
+* stop treating every point as inside a degenerate (coincident-vertex) ring ([c3b8213](https://github.com/konfirm/geojson/commit/c3b82137b861cea7039187cc1affdf5f9b736f0b)), closes [#27](https://github.com/konfirm/geojson/issues/27)
+
 ## [2.2.0-beta.0](https://github.com/konfirm/geojson/compare/v2.1.0...v2.2.0-beta.0) (2026-09-24)
 
 ### Features
