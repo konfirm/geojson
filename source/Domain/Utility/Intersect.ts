@@ -4,19 +4,69 @@ import type { Point } from '../GeoJSON/Geometry/Point';
 import type { Polygon } from '../GeoJSON/Geometry/Polygon';
 import { IterablePairIterator } from '../Iterator/IterablePair';
 import { SimpleGeometryIterator } from '../Iterator/SimpleGeometry';
+import { unwrapPath } from './Antimeridian';
 import {
 	type BoundaryDecision,
+	getDistanceOfPointToPoint,
 	isLinesCrossing,
 	isPointInRing,
 	isPointOnLine,
 } from './Calculate';
 import { segments } from './Segments';
 
-export type BoundaryConvention = 'include' | 'exclude' | BoundaryDecision;
+export type BoundaryConvention =
+	| 'include'
+	| 'exclude'
+	| 'winding'
+	| BoundaryDecision;
 
-const BOUNDARY_CONVENTIONS: Record<'include' | 'exclude', BoundaryDecision> = {
+const SAME_POSITION_THRESHOLD = 1e-14;
+
+function isSamePosition(
+	a: Point['coordinates'],
+	b: Point['coordinates'],
+): boolean {
+	return (
+		getDistanceOfPointToPoint(a, b, 'cartesian') < SAME_POSITION_THRESHOLD
+	);
+}
+
+function isInclusiveEdge(
+	a: Point['coordinates'],
+	b: Point['coordinates'],
+): boolean {
+	const [, unwrappedB] = unwrapPath([a, b]);
+	const deltaLatitude = b[1] - a[1];
+	const deltaLongitude = unwrappedB[0] - a[0];
+
+	return deltaLatitude < 0 || (deltaLatitude === 0 && deltaLongitude > 0);
+}
+
+const winding: BoundaryDecision = (point, ring, index) => {
+	const n = ring.length - 1;
+	const vertex = (i: number) => ring[((i % n) + n) % n];
+	const a = ring[index];
+	const b = ring[index + 1];
+
+	if (!isSamePosition(point, a) && !isSamePosition(point, b)) {
+		return isInclusiveEdge(a, b);
+	}
+
+	const v = isSamePosition(point, a) ? index : index + 1;
+
+	return (
+		isInclusiveEdge(vertex(v - 1), vertex(v)) &&
+		isInclusiveEdge(vertex(v), vertex(v + 1))
+	);
+};
+
+const BOUNDARY_CONVENTIONS: Record<
+	'include' | 'exclude' | 'winding',
+	BoundaryDecision
+> = {
 	include: () => true,
 	exclude: () => false,
+	winding,
 };
 
 function resolveBoundary(boundary: BoundaryConvention): BoundaryDecision {

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { Improbability } from '../../../test/helper/spec';
+import { each } from 'template-literal-each';
+import { explain, type Improbability } from '../../../test/helper/spec';
 import type { LineString, Point, Polygon } from '../../main';
 import { intersect } from './Intersect';
 
@@ -89,6 +90,105 @@ describe('intersect', () => {
 					intersect(onHoleEdge, withHole, { boundary: 'exclude' }),
 					"'exclude': hole boundary no longer counts as hole, so included in the surface",
 				);
+			});
+
+			describe("'winding' — top-left rule", () => {
+				// box: [0,0] -> [0,2] -> [2,2] -> [2,0] -> [0,0] (CCW)
+				// edges: west (north-heading, exclusive), north (east-heading, inclusive),
+				// east (south-heading, inclusive), south (west-heading, exclusive)
+				test('vertices where both incident edges agree are unambiguous', () => {
+					assert.ok(
+						!intersect(
+							{ type: 'Point', coordinates: [0, 0] },
+							box,
+							{
+								boundary: 'winding',
+							},
+						),
+						'(0,0): both incident edges exclusive',
+					);
+					assert.ok(
+						intersect({ type: 'Point', coordinates: [2, 2] }, box, {
+							boundary: 'winding',
+						}),
+						'(2,2): both incident edges inclusive',
+					);
+				});
+
+				test('a vertex where incident edges disagree requires both to be inclusive', () => {
+					assert.ok(
+						!intersect(
+							{ type: 'Point', coordinates: [0, 2] },
+							box,
+							{
+								boundary: 'winding',
+							},
+						),
+						'(0,2): west edge exclusive, north edge inclusive -> excluded',
+					);
+					assert.ok(
+						!intersect(
+							{ type: 'Point', coordinates: [2, 0] },
+							box,
+							{
+								boundary: 'winding',
+							},
+						),
+						'(2,0): east edge inclusive, south edge exclusive -> excluded',
+					);
+				});
+
+				test('mid-edge points follow their own edge only', () => {
+					assert.ok(
+						intersect({ type: 'Point', coordinates: [1, 2] }, box, {
+							boundary: 'winding',
+						}),
+						'north edge (east-heading): inclusive',
+					);
+					assert.ok(
+						!intersect(
+							{ type: 'Point', coordinates: [1, 0] },
+							box,
+							{
+								boundary: 'winding',
+							},
+						),
+						'south edge (west-heading): exclusive',
+					);
+				});
+
+				test('reversing the ring flips every boundary answer', () => {
+					const reversed: Polygon = {
+						type: 'Polygon',
+						coordinates: [[...box.coordinates[0]].reverse()],
+					};
+
+					each`
+						point
+						-------------
+						${[0, 0]}
+						${[2, 2]}
+						${[1, 2]}
+						${[1, 0]}
+					`(({ point }: { point: [number, number] }) => {
+						const forward = intersect(
+							{ type: 'Point', coordinates: point },
+							box,
+							{ boundary: 'winding' },
+						);
+						const flipped = intersect(
+							{ type: 'Point', coordinates: point },
+							reversed,
+							{ boundary: 'winding' },
+						);
+
+						assert.notStrictEqual(
+							forward,
+							flipped,
+							`${explain(point)} should flip when the ring reverses`,
+						);
+					});
+				});
 			});
 		});
 	});
