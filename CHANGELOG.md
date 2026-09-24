@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.2.0-beta.2](https://github.com/konfirm/geojson/compare/v2.2.0-beta.1...v2.2.0-beta.2) (2026-09-24)
+
+### Bug Fixes
+
+* stop treating a ring with one duplicate vertex as fully degenerate ([468ff39](https://github.com/konfirm/geojson/commit/468ff396b951d58723e4c380b362452ce88f63a4)), closes [#29](https://github.com/konfirm/geojson/issues/29)
+
 ## [2.2.0-beta.1](https://github.com/konfirm/geojson/compare/v2.2.0-beta.0...v2.2.0-beta.1) (2026-09-24)
 
 ### Bug Fixes
