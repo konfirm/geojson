@@ -30,6 +30,67 @@ describe('intersect', () => {
 		test('point on the boundary intersects', () => {
 			assert.ok(intersect({ type: 'Point', coordinates: [0, 0] }, box));
 		});
+
+		describe('boundary option', () => {
+			const vertex: Point = { type: 'Point', coordinates: [0, 0] };
+			const onEdge: Point = { type: 'Point', coordinates: [1, 0] };
+			const inside: Point = { type: 'Point', coordinates: [1, 1] };
+			const outside: Point = { type: 'Point', coordinates: [3, 3] };
+
+			test('defaults to including boundary points, unchanged', () => {
+				assert.ok(intersect(vertex, box));
+				assert.ok(intersect(onEdge, box));
+			});
+
+			test("'include' behaves the same as the default", () => {
+				assert.ok(intersect(vertex, box, { boundary: 'include' }));
+				assert.ok(intersect(onEdge, box, { boundary: 'include' }));
+			});
+
+			test("'exclude' excludes vertex and edge boundary points", () => {
+				assert.ok(!intersect(vertex, box, { boundary: 'exclude' }));
+				assert.ok(!intersect(onEdge, box, { boundary: 'exclude' }));
+			});
+
+			test('interior and exterior points are unaffected by the option', () => {
+				assert.ok(intersect(inside, box, { boundary: 'exclude' }));
+				assert.ok(!intersect(outside, box, { boundary: 'exclude' }));
+			});
+
+			test('a custom function decides boundary inclusion', () => {
+				assert.ok(!intersect(vertex, box, { boundary: () => false }));
+				assert.ok(intersect(vertex, box, { boundary: () => true }));
+			});
+
+			test('holes respect the same boundary option as the exterior ring', () => {
+				const withHole: Polygon = {
+					type: 'Polygon',
+					coordinates: [
+						box.coordinates[0],
+						[
+							[0.5, 0.5],
+							[0.5, 1.5],
+							[1.5, 1.5],
+							[1.5, 0.5],
+							[0.5, 0.5],
+						],
+					],
+				};
+				const onHoleEdge: Point = {
+					type: 'Point',
+					coordinates: [1, 0.5],
+				};
+
+				assert.ok(
+					!intersect(onHoleEdge, withHole),
+					'default: hole boundary counts as hole, so excluded from the surface',
+				);
+				assert.ok(
+					intersect(onHoleEdge, withHole, { boundary: 'exclude' }),
+					"'exclude': hole boundary no longer counts as hole, so included in the surface",
+				);
+			});
+		});
 	});
 
 	describe('line strings', () => {

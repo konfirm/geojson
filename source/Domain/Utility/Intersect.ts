@@ -4,8 +4,26 @@ import type { Point } from '../GeoJSON/Geometry/Point';
 import type { Polygon } from '../GeoJSON/Geometry/Polygon';
 import { IterablePairIterator } from '../Iterator/IterablePair';
 import { SimpleGeometryIterator } from '../Iterator/SimpleGeometry';
-import { isLinesCrossing, isPointInRing, isPointOnLine } from './Calculate';
+import {
+	type BoundaryDecision,
+	isLinesCrossing,
+	isPointInRing,
+	isPointOnLine,
+} from './Calculate';
 import { segments } from './Segments';
+
+export type BoundaryConvention = 'include' | 'exclude' | BoundaryDecision;
+
+const BOUNDARY_CONVENTIONS: Record<'include' | 'exclude', BoundaryDecision> = {
+	include: () => true,
+	exclude: () => false,
+};
+
+function resolveBoundary(boundary: BoundaryConvention): BoundaryDecision {
+	return typeof boundary === 'function'
+		? boundary
+		: BOUNDARY_CONVENTIONS[boundary];
+}
 
 const geometries = {
 	PointPoint(a: Point['coordinates'], b: Point['coordinates']): boolean {
@@ -37,45 +55,57 @@ const geometries = {
 	PolygonPoint(
 		[exterior, ...interior]: Polygon['coordinates'],
 		b: Point['coordinates'],
+		boundary: BoundaryDecision,
 	): boolean {
 		return (
-			(this.LineStringPoint(exterior, b) || isPointInRing(b, exterior)) &&
+			isPointInRing(b, exterior, boundary) &&
 			(!interior.length ||
-				interior.every((ring) => !isPointInRing(b, ring)))
+				interior.every((ring) => !isPointInRing(b, ring, boundary)))
 		);
 	},
 	PolygonLineString(
 		a: Polygon['coordinates'],
 		b: LineString['coordinates'],
+		boundary: BoundaryDecision,
 	): boolean {
 		return (
 			a.some((ring) => this.LineStringLineString(ring, b)) ||
-			b.some((point) => this.PolygonPoint(a, point))
+			b.some((point) => this.PolygonPoint(a, point, boundary))
 		);
 	},
 	PolygonPolygon(
 		a: Polygon['coordinates'],
 		b: Polygon['coordinates'],
+		boundary: BoundaryDecision,
 	): boolean {
 		return (
 			b.some(
 				(b1) =>
-					this.PolygonLineString(a, b1) ||
-					b1.some((b2) => this.PolygonPoint(a, b2)),
+					this.PolygonLineString(a, b1, boundary) ||
+					b1.some((b2) => this.PolygonPoint(a, b2, boundary)),
 			) ||
 			a.some(
 				(a1) =>
-					this.PolygonLineString(b, a1) ||
-					a1.some((a2) => this.PolygonPoint(b, a2)),
+					this.PolygonLineString(b, a1, boundary) ||
+					a1.some((a2) => this.PolygonPoint(b, a2, boundary)),
 			)
 		);
 	},
 };
 
-export function intersect(a: GeoJSON, b: GeoJSON): boolean {
-	const lookup = <Record<string, (a: unknown, b: unknown) => boolean>>(
-		geometries
-	);
+export function intersect(
+	a: GeoJSON,
+	b: GeoJSON,
+	options?: { boundary?: BoundaryConvention },
+): boolean {
+	const boundary = resolveBoundary(options?.boundary ?? 'include');
+	const lookup = <
+		Record<
+			string,
+			(a: unknown, b: unknown, boundary: BoundaryDecision) => boolean
+		>
+	>geometries;
+
 	for (const [itA, itB] of new IterablePairIterator(
 		new SimpleGeometryIterator(a),
 		new SimpleGeometryIterator(b),
@@ -85,9 +115,14 @@ export function intersect(a: GeoJSON, b: GeoJSON): boolean {
 				lookup[itA.type + itB.type](
 					itA.coordinates,
 					itB.coordinates,
+					boundary,
 				)) ||
 			(itB.type + itA.type in lookup &&
-				lookup[itB.type + itA.type](itB.coordinates, itA.coordinates))
+				lookup[itB.type + itA.type](
+					itB.coordinates,
+					itA.coordinates,
+					boundary,
+				))
 		) {
 			return true;
 		}
