@@ -365,6 +365,10 @@ describe('intersect', () => {
 	});
 
 	describe('degenerate ring: all vertices coincide (issue #27 wiring check)', () => {
+		// Not a correctness suite — that lives in Spherical.spec.ts/
+		// Calculate.spec.ts. Just confirms intersect() wires down correctly
+		// for a ring collapsed to a single coincident point (e.g. a legacy
+		// $box query with equal corners), which used to match every point
 		// tested against it.
 		const ring: Polygon = {
 			type: 'Polygon',
@@ -388,6 +392,44 @@ describe('intersect', () => {
 		test('a point nowhere near it does not intersect', () => {
 			assert.ok(
 				!intersect({ type: 'Point', coordinates: [10.9, 57] }, ring),
+			);
+		});
+	});
+
+	describe('partially degenerate ring: one vertex listed twice in a row (issue #29 wiring check)', () => {
+		// Not a correctness suite — that lives in Spherical.spec.ts/
+		// Calculate.spec.ts. Just confirms intersect() wires down correctly
+		// for a ring with a real (>=3 distinct vertices) shape that still
+		// has one zero-length edge, which used to be treated as if the
+		// whole ring were degenerate (like #27) instead of just that edge.
+		const withDupe: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[5.9, 52],
+					[5.9, 52],
+					[6.9, 52],
+					[6.9, 53],
+					[5.9, 52],
+				],
+			],
+		};
+
+		test('a point far from the triangle does not intersect', () => {
+			assert.ok(
+				!intersect(
+					{ type: 'Point', coordinates: [25.9, 72] },
+					withDupe,
+				),
+			);
+		});
+
+		test('a point genuinely inside the triangle intersects', () => {
+			assert.ok(
+				intersect(
+					{ type: 'Point', coordinates: [5.905, 52.005] },
+					withDupe,
+				),
 			);
 		});
 	});

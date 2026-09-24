@@ -31,6 +31,11 @@ function isSamePosition(
 	);
 }
 
+// The GPU rasterizer "top-left" fill rule, adapted to longitude/latitude:
+// an edge owns the points on it if it heads south, or heads east along a
+// line of constant latitude. Reversing a ring's winding reverses every
+// edge's direction, so this flips which side of a shared boundary each
+// ring claims, unlike 'include'/'exclude', it responds to winding.
 function isInclusiveEdge(
 	a: Point['coordinates'],
 	b: Point['coordinates'],
@@ -42,6 +47,10 @@ function isInclusiveEdge(
 	return deltaLatitude < 0 || (deltaLatitude === 0 && deltaLongitude > 0);
 }
 
+// A vertex is shared by two edges; it only belongs to this ring if both
+// of them do, the same way a shared corner in a tiled mesh is only drawn
+// by the one triangle whose edges are both top-left, otherwise either
+// every ring sharing the vertex claims it (double count) or none do (gap).
 const winding: BoundaryDecision = (point, ring, index) => {
 	const n = ring.length - 1;
 	const vertex = (i: number) => ring[((i % n) + n) % n];
