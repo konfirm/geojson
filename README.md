@@ -232,15 +232,49 @@ both valid interpretations — `intersect()` picks the smaller of the two region
 matching MongoDB's own `2dsphere` (non-strict-winding) default. RFC 7946 §3.1.6's winding
 direction breaks an exact tie between two equally-sized regions.
 
-A self-intersecting ring (edges that cross themselves — not a valid simple polygon) throws a
-`SelfIntersectingRingError` rather than silently returning an arbitrary result — see
+A self-intersecting ring (edges that cross themselves, not a valid simple polygon) throws a
+`SelfIntersectingRingError` rather than silently returning an arbitrary result; see
 [Errors](#errors).
+
+#### Boundary points
+
+A point sitting exactly on a ring's edge or vertex is included by default, that's been
+`intersect()`'s behavior since v1, and it doesn't change. An optional third argument lets you
+pick a different, explicit convention instead:
+
+Usage: `intersect(<...>, <...>, { boundary?: 'include' | 'exclude' | 'winding' | BoundaryDecision }): boolean`
+
+```ts
+import { intersect, Point, Polygon } from '@konfirm/geojson';
+
+const vertex: Point = { type: 'Point', coordinates: [0, 0] };
+const box: Polygon = {
+    type: 'Polygon',
+    coordinates: [[[0, 0], [0, 2], [2, 2], [2, 0], [0, 0]]],
+};
+
+console.log(intersect(vertex, box));                          // true  (default: 'include')
+console.log(intersect(vertex, box, { boundary: 'exclude' })); // false
+console.log(intersect(vertex, box, { boundary: 'winding' })); // depends on the ring's winding
+```
+
+- `'include'` (default) - a boundary point always counts as inside.
+- `'exclude'` - a boundary point never counts as inside.
+- `'winding'` - a boundary point counts as inside based on the direction of the edge(s) it sits
+  on: the same "top-left" fill rule GPU rasterizers use so two shapes sharing an edge each draw
+  their own half exactly once, adapted to longitude/latitude, an edge is inclusive if it heads
+  south, or heads east along a line of constant latitude. Reversing a ring's winding flips which
+  boundary points it claims. A vertex shared by two edges only counts as inside if *both*
+  incident edges are individually inclusive.
+- A custom `(point, ring, edgeIndex) => boolean` function for anything else, `ring[edgeIndex]`
+  and `ring[edgeIndex + 1]` are the matched edge's two endpoints, so a hole or a shared vertex's
+  other incident edges are just further lookups into `ring` from there.
 
 ### ringArea / exceedsHemisphere
 
 The same hemisphere check `intersect()` uses internally to pick the smaller of a ring's two
 candidate regions (see above), exposed directly for consumers who need to replicate that
-decision themselves — for example, to match MongoDB's own `2dsphere` (non-strict-winding)
+decision themselves, for example, to match MongoDB's own `2dsphere` (non-strict-winding)
 default without a separate reimplementation of the underlying spherical-area math.
 
 Usage: `ringArea(<LinearRing>): number` (steradians, `0` to `4 * Math.PI` for the whole sphere)
@@ -255,11 +289,11 @@ console.log(ringArea(ring)); // a small fraction of 4*PI
 console.log(exceedsHemisphere(ring)); // false
 ```
 
-`ringArea` reports the ring's literal, as-wound area — unlike `intersect()`, it does **not**
+`ringArea` reports the ring's literal as-wound area, unlike `intersect()`, it does **not**
 correct for winding. Reversing a ring's vertex order (or simply authoring it the other way
 around, as a clockwise-vs-counterclockwise ring for the same shape above would) changes *which*
 of the two candidate regions is measured, so the result can flip to the area of the
-complementary region — for the same small box above wound the other way, `ringArea` reports
+complementary region for the same small box above wound the other way, `ringArea` reports
 nearly `4 * Math.PI` (the rest of the sphere), not a small number. `exceedsHemisphere(ring)` is
 a self-documenting shorthand for `ringArea(ring) > 2 * Math.PI`, matching the specific question
 MongoDB's default `$geoWithin` behavior answers before inverting to the smaller region.
@@ -268,10 +302,10 @@ MongoDB's default `$geoWithin` behavior answers before inverting to the smaller 
 
 Obtain the (shortest) distance in meters between two GeoJSON objects. Choose a formula based on your use case:
 
- - `haversine` (**default**) — geographic lon/lat coordinates, most use cases; good accuracy, good performance
- - `vincenty` — when you need higher accuracy than haversine and can guarantee inputs are not near-antipodal — points on nearly opposite sides of the Earth — (throws a `GeodesicConvergenceError` for those, see [Errors](#errors))
- - `karney` — when correctness is unconditional: near-antipodal inputs, or when you simply cannot afford a wrong answer; ~15 nm accuracy on WGS84
- - `cartesian` — when coordinates are in a metric projected system (e.g. RD New / EPSG:28992, UTM) where Euclidean distance is correct; note that projected coordinates are not valid strict GeoJSON (RFC 7946 requires geographic lon/lat, WGS84) — **do not use for geographic coordinates**
+ - `haversine` (**default**) - geographic lon/lat coordinates, most use cases; good accuracy, good performance
+ - `vincenty` - when you need higher accuracy than haversine and can guarantee inputs are not near-antipodal — points on nearly opposite sides of the Earth (throws a `GeodesicConvergenceError` for those, see [Errors](#errors))
+ - `karney` - when correctness is unconditional: near-antipodal inputs, or when you simply cannot afford a wrong answer; ~15 nm accuracy on WGS84
+ - `cartesian` - when coordinates are in a metric projected system (e.g. RD New / EPSG:28992, UTM) where Euclidean distance is correct; note that projected coordinates are not valid strict GeoJSON (RFC 7946 requires geographic lon/lat, WGS84) **do not use for geographic coordinates**
 
 Each formula is also exported as a standalone function for direct use and better tree-shaking.
 
@@ -283,9 +317,9 @@ haversine(a, b, 1);             // raw angular separation in radians (unit spher
 cartesian(a, b, 180 / Math.PI); // cancels the internal degrees→radians step: raw planar Euclidean distance
 ```
 
-`distance()` does not take a radius argument — use `cartesian`/`haversine` directly when you need one.
+`distance()` does not take a radius argument, use `cartesian`/`haversine` directly when you need one.
 
-The formula argument accepts either a string or a custom `(a: Position, b: Position) => number` function — useful when you need a projection-specific calculation or want to plug in your own formula. The `PointToPointCalculation` type covers both and is exported for use in typed wrapper functions. An unrecognized string throws an `UnknownCalculationError` (see [Errors](#errors)) rather than silently falling through.
+The formula argument accepts either a string or a custom `(a: Position, b: Position) => number` function, useful when you need a projection-specific calculation or want to plug in your own formula. The `PointToPointCalculation` type covers both and is exported for use in typed wrapper functions. An unrecognized string throws an `UnknownCalculationError` (see [Errors](#errors)) rather than silently falling through.
 
 Usage: `distance(<GeoJSON>, <GeoJSON> [, <PointToPointCalculation>]): number`
 
@@ -309,12 +343,12 @@ console.log(distance(a, b, 'vincenty'));  // 5863355.371234315
 console.log(distance(a, b, 'karney'));    // 5863355.371221913
 console.log(distance(a, b, 'cartesian')); // 8829424.604594177
 
-console.log(karney(a, b)); // 5863355.371221913 — same as distance(a, b, 'karney')
+console.log(karney(a, b)); // 5863355.371221913 - same as distance(a, b, 'karney')
 ```
 
 #### Accuracy versus performance
 
-This library's karney implementation matches Karney's own GeographicLib C++ reference within 1 nm on average and 11 nm at worst, across 500,000 test cases — close enough to use as the accuracy benchmark below.
+This library's karney implementation matches Karney's own GeographicLib C++ reference within 1 nm on average and 11 nm at worst, across 500,000 test cases, close enough to use as the accuracy benchmark below.
 A result is counted as **wrong** when it deviates from the benchmark by more than 10.0 m. Throws count as wrong too.
 
 Performance: karney shows absolute µs/call on this machine; other formulas show speed relative to karney (~Nx = N times faster) — ratios are more portable across machines than absolute times.

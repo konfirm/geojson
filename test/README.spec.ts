@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { Feature, FeatureCollection, GeometryCollection, LineString, MultiLineString, MultiPoint, Point } from '../source/main';
+import type { Feature, FeatureCollection, GeometryCollection, LineString, MultiLineString, MultiPoint, Point, Polygon } from '../source/main';
 import { distance, exceedsHemisphere, intersect, ringArea, SimpleGeometryIterator } from '../source/main';
 
 describe('README - intersect', () => {
@@ -13,6 +13,28 @@ describe('README - intersect', () => {
 		};
 		assert.ok(intersect(point, feature));
 		assert.ok(intersect(feature, point));
+	});
+});
+
+describe('README - intersect boundary option', () => {
+	test('a boundary point follows the include/exclude/winding option', () => {
+		const vertex: Point = { type: 'Point', coordinates: [0, 0] };
+		const box: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[0, 0],
+					[0, 2],
+					[2, 2],
+					[2, 0],
+					[0, 0],
+				],
+			],
+		};
+
+		assert.strictEqual(intersect(vertex, box), true);
+		assert.strictEqual(intersect(vertex, box, { boundary: 'exclude' }), false);
+		assert.strictEqual(intersect(vertex, box, { boundary: 'winding' }), false);
 	});
 });
 

@@ -363,4 +363,32 @@ describe('intersect', () => {
 			);
 		});
 	});
+
+	describe('degenerate ring: all vertices coincide (issue #27 wiring check)', () => {
+		// tested against it.
+		const ring: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[5.9, 52],
+					[5.9, 52],
+					[5.9, 52],
+					[5.9, 52],
+					[5.9, 52],
+				],
+			],
+		};
+
+		test('the exact coincident point intersects', () => {
+			assert.ok(
+				intersect({ type: 'Point', coordinates: [5.9, 52] }, ring),
+			);
+		});
+
+		test('a point nowhere near it does not intersect', () => {
+			assert.ok(
+				!intersect({ type: 'Point', coordinates: [10.9, 57] }, ring),
+			);
+		});
+	});
 });
