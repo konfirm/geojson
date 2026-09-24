@@ -303,6 +303,19 @@ describe('Domain/Utility/Calculate', () => {
 				[179, -1],
 			);
 		});
+
+		test('a zero-length line (both endpoints coincide) returns that point, not NaN', () => {
+			const point: [number, number] = [5.9, 52];
+
+			assert.deepStrictEqual(
+				getClosestPointOnLineByPoint(point, [point, point]),
+				point,
+			);
+			assert.deepStrictEqual(
+				getClosestPointOnLineByPoint([10.9, 57], [point, point]),
+				point,
+			);
+		});
 	});
 
 	describe('isLinesCrossing', () => {
@@ -406,6 +419,13 @@ describe('Domain/Utility/Calculate', () => {
 				isPointOnLine(point, [edge[1], edge[0]]),
 				'reversed edge order',
 			);
+		});
+
+		test('a zero-length line: only the coincident point itself is on it', () => {
+			const point: [number, number] = [5.9, 52];
+
+			assert.ok(isPointOnLine(point, [point, point]));
+			assert.ok(!isPointOnLine([10.9, 57], [point, point]));
 		});
 	});
 
@@ -538,6 +558,26 @@ describe('Domain/Utility/Calculate', () => {
 					() => isPointInRing([0.5, 0], bowtie, () => true),
 					/Ring is self-intersecting/,
 				);
+			});
+		});
+
+		describe('degenerate ring: all vertices coincide (issue #27, e.g. a $box query with equal corners)', () => {
+			const degenerate = [
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+			];
+
+			test('only the exact coincident point is inside, by default', () => {
+				assert.ok(isPointInRing([5.9, 52], degenerate));
+				assert.ok(!isPointInRing([10.9, 57], degenerate));
+				assert.ok(!isPointInRing([25.9, 72], degenerate));
+			});
+
+			test('the coincident point is still a boundary point, so a custom decision applies to it', () => {
+				assert.ok(!isPointInRing([5.9, 52], degenerate, () => false));
 			});
 		});
 	});

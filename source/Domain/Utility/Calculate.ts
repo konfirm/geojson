@@ -157,8 +157,11 @@ export function getClosestPointOnLineByPoint(
 ): Point['coordinates'] {
 	const unwrappedLine = unwrapPath(line);
 	const [[ax, ay], [bx, by]] = unwrappedLine;
-	const [px, py] = alignPosition(point, ax);
 	const [abx, aby] = [bx - ax, by - ay];
+
+	if (abx === 0 && aby === 0) return unwrappedLine[0];
+
+	const [px, py] = alignPosition(point, ax);
 	const [apx, apy] = [px - ax, py - ay];
 	const t = constrain(
 		(apx * abx + apy * aby) / (abx * abx + aby * aby),

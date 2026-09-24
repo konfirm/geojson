@@ -297,6 +297,30 @@ describe('Domain/Utility/Spherical', () => {
 				);
 			});
 		});
+
+		describe('degenerate ring: all vertices coincide (issue #27, e.g. a $box query with equal corners)', () => {
+			const degenerate: LinearRing = [
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+			];
+
+			test('the coincident point itself is not reported as interior', () => {
+				assert.equal(
+					isPositionInSphericalRing([5.9, 52], degenerate),
+					false,
+				);
+			});
+
+			test('a point nowhere near it is outside', () => {
+				assert.equal(
+					isPositionInSphericalRing([10.9, 57], degenerate),
+					false,
+				);
+			});
+		});
 	});
 
 	describe('ringArea', () => {
@@ -359,6 +383,19 @@ describe('Domain/Utility/Spherical', () => {
 			assert.equal(ringArea(inputA as LinearRing), 0);
 			assert.equal(ringArea(inputB as LinearRing), 0);
 		});
+
+		test('all-coincident vertices report 0, not 2*PI', () => {
+			const degenerate: LinearRing = [
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+				[5.9, 52],
+			];
+
+			assert.equal(ringArea(degenerate), 0);
+			assert.equal(exceedsHemisphere(degenerate), false);
+		});
 	});
 
 	describe('orientedRingArea', () => {
@@ -383,6 +420,19 @@ describe('Domain/Utility/Spherical', () => {
 					[0, 0],
 					[1, 0],
 					[0, 0],
+				]),
+				null,
+			);
+		});
+
+		test('all-coincident vertices (e.g. a $box query with equal corners) has no orientation, despite 4+ array entries', () => {
+			assert.equal(
+				orientedRingArea([
+					[5.9, 52],
+					[5.9, 52],
+					[5.9, 52],
+					[5.9, 52],
+					[5.9, 52],
 				]),
 				null,
 			);
@@ -421,7 +471,6 @@ describe('Domain/Utility/Spherical', () => {
 			assert.equal(orientedRingArea(inputA as LinearRing), null);
 			assert.equal(orientedRingArea(inputB as LinearRing), null);
 		});
-
 	});
 
 	describe('exceedsHemisphere', () => {

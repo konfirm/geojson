@@ -200,13 +200,20 @@ function getSelfIntersection(
 	return crossing;
 }
 
+function hasDistinctVertices(open: Array<Position>, minimum: number): boolean {
+	return (
+		new Set(open.map((position) => JSON.stringify(position))).size >=
+		minimum
+	);
+}
+
 // Area of a ring's own traversal-implied side, at the Position level.
 // Returns null for fewer than 3 distinct vertices: a point or
 // a line segment doesn't enclose anything
 export function orientedRingArea(ring: Array<Position>): number | null {
 	const open = isClosedRing(ring) ? ring.slice(0, -1) : ring;
 
-	if (open.length < 3) return null;
+	if (open.length < 3 || !hasDistinctVertices(open, 3)) return null;
 
 	const vertices = open.map(toSpherePosition);
 
@@ -242,7 +249,11 @@ export function isPositionInSphericalRing(
 	position: Position,
 	ring: Array<Position>,
 ): boolean {
-	const vertices = ring.slice(0, -1).map(toSpherePosition);
+	const open = ring.slice(0, -1);
+
+	if (!hasDistinctVertices(open, 3)) return false;
+
+	const vertices = open.map(toSpherePosition);
 	const crossing = getSelfIntersection(JSON.stringify(ring), vertices);
 
 	if (crossing) {
