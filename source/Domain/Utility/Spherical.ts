@@ -200,10 +200,19 @@ function getSelfIntersection(
 	return crossing;
 }
 
-function hasDistinctVertices(open: Array<Position>, minimum: number): boolean {
-	return (
-		new Set(open.map((position) => JSON.stringify(position))).size >=
-		minimum
+// Removes any vertex equal to its cyclic predecessor — including across
+// the ring's own closing wrap — collapsing a zero-length edge (a vertex
+// listed twice in a row) down to one. arcsCross can never register a
+// crossing against a zero-length edge (its two "endpoints" are the same
+// point), so crossingCount/turningAngle silently treat it as if it
+// weren't there — this makes that explicit instead of leaving a blind
+// spot for a ring that's only *partially* degenerate (issue #29; #27 was
+// the fully-degenerate case, every vertex the same point).
+function withoutZeroLengthEdges(open: Array<Position>): Array<Position> {
+	return open.filter(
+		(vertex, i) =>
+			JSON.stringify(vertex) !==
+			JSON.stringify(open[(i - 1 + open.length) % open.length]),
 	);
 }
 
@@ -212,9 +221,6 @@ function hasDistinctVertices(open: Array<Position>, minimum: number): boolean {
 // a line segment doesn't enclose anything
 export function orientedRingArea(ring: Array<Position>): number | null {
 	const open = isClosedRing(ring) ? ring.slice(0, -1) : ring;
-
-	if (open.length < 3 || !hasDistinctVertices(open, 3)) return null;
-
 	const vertices = open.map(toSpherePosition);
 
 	// A self-intersecting ("bowtie") ring has no single left/right side —
@@ -222,9 +228,13 @@ export function orientedRingArea(ring: Array<Position>): number | null {
 	// specific-looking but meaningless number for one that crosses itself,
 	// not a natural tie the way a flat shoelace sum's own cancellation
 	// happens to land on exactly 0 for a *balanced* self-crossing shape.
-	return getSelfIntersection(JSON.stringify(ring), vertices)
-		? null
-		: signedRingArea(vertices);
+	if (getSelfIntersection(JSON.stringify(ring), vertices)) return null;
+
+	const distinct = withoutZeroLengthEdges(open);
+
+	if (distinct.length < 3) return null;
+
+	return signedRingArea(distinct.map(toSpherePosition));
 }
 
 // Unsigned ring area in steradians, 0 to 4*PI (whole sphere). This is the
@@ -250,9 +260,6 @@ export function isPositionInSphericalRing(
 	ring: Array<Position>,
 ): boolean {
 	const open = ring.slice(0, -1);
-
-	if (!hasDistinctVertices(open, 3)) return false;
-
 	const vertices = open.map(toSpherePosition);
 	const crossing = getSelfIntersection(JSON.stringify(ring), vertices);
 
@@ -266,11 +273,15 @@ export function isPositionInSphericalRing(
 		);
 	}
 
+	const distinct = withoutZeroLengthEdges(open).map(toSpherePosition);
+
+	if (distinct.length < 3) return false;
+
 	const p = toSpherePosition(position);
-	const reference = edgeReference(vertices);
+	const reference = edgeReference(distinct);
 	const sameSideAsReference =
-		crossingCount(p, vertices) % 2 ===
-		crossingCount(reference, vertices) % 2;
+		crossingCount(p, distinct) % 2 ===
+		crossingCount(reference, distinct) % 2;
 
 	// edgeReference sits on the ring's traversal side. If that side is the
 	// bigger one (over a hemisphere), the smaller-region rule makes the

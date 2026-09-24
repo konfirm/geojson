@@ -159,6 +159,9 @@ export function getClosestPointOnLineByPoint(
 	const [[ax, ay], [bx, by]] = unwrappedLine;
 	const [abx, aby] = [bx - ax, by - ay];
 
+	// Zero-length line (both endpoints coincide): the projection below
+	// divides by zero (0/0 = NaN). The closest (only) point on it is
+	// the point itself.
 	if (abx === 0 && aby === 0) return unwrappedLine[0];
 
 	const [px, py] = alignPosition(point, ax);
@@ -254,6 +257,8 @@ export function isPointInRing(
 	ring: Array<Point['coordinates']>,
 	boundary: BoundaryDecision = () => true,
 ): boolean {
+	// Always run, self-intersecting rings must throw regardless of
+	// where the query point falls relative to the boundary.
 	const inside = isPositionInSphericalRing(p, ring);
 	const index = ring
 		.slice(1)

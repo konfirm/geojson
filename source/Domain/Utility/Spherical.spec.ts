@@ -321,6 +321,47 @@ describe('Domain/Utility/Spherical', () => {
 				);
 			});
 		});
+
+		describe('partially degenerate ring: one vertex listed twice in a row (issue #29)', () => {
+			// A real triangle, 3 distinct vertices, but the first one is
+			// duplicated — a zero-length edge #27's fully-degenerate guard
+			// doesn't catch, since this ring still has >= 3 distinct vertices.
+			const withDupe: LinearRing = [
+				[5.9, 52],
+				[5.9, 52],
+				[6.9, 52],
+				[6.9, 53],
+				[5.9, 52],
+			];
+			const withoutDupe: LinearRing = [
+				[5.9, 52],
+				[6.9, 52],
+				[6.9, 53],
+				[5.9, 52],
+			];
+
+			test('gives the same answer as the equivalent ring without the duplicate, for a point nowhere near it', () => {
+				assert.equal(
+					isPositionInSphericalRing([25.9, 72], withDupe),
+					isPositionInSphericalRing([25.9, 72], withoutDupe),
+				);
+				assert.equal(
+					isPositionInSphericalRing([25.9, 72], withDupe),
+					false,
+				);
+			});
+
+			test('gives the same answer as the equivalent ring without the duplicate, for a point genuinely inside', () => {
+				assert.equal(
+					isPositionInSphericalRing([5.905, 52.005], withDupe),
+					isPositionInSphericalRing([5.905, 52.005], withoutDupe),
+				);
+				assert.equal(
+					isPositionInSphericalRing([5.905, 52.005], withDupe),
+					true,
+				);
+			});
+		});
 	});
 
 	describe('ringArea', () => {
@@ -436,6 +477,28 @@ describe('Domain/Utility/Spherical', () => {
 				]),
 				null,
 			);
+		});
+
+		test('a genuine triangle with one vertex listed twice in a row has the same orientation as without the duplicate (issue #29)', () => {
+			const withDupe: LinearRing = [
+				[5.9, 52],
+				[5.9, 52],
+				[6.9, 52],
+				[6.9, 53],
+				[5.9, 52],
+			];
+			const withoutDupe: LinearRing = [
+				[5.9, 52],
+				[6.9, 52],
+				[6.9, 53],
+				[5.9, 52],
+			];
+
+			assert.equal(
+				orientedRingArea(withDupe),
+				orientedRingArea(withoutDupe),
+			);
+			assert.notEqual(orientedRingArea(withDupe), null);
 		});
 
 		test('a self-intersecting ("bowtie") ring has no orientation', () => {

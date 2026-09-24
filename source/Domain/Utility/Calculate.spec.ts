@@ -580,5 +580,34 @@ describe('Domain/Utility/Calculate', () => {
 				assert.ok(!isPointInRing([5.9, 52], degenerate, () => false));
 			});
 		});
+
+		describe('partially degenerate ring: one vertex listed twice in a row (issue #29)', () => {
+			const withDupe = [
+				[5.9, 52],
+				[5.9, 52],
+				[6.9, 52],
+				[6.9, 53],
+				[5.9, 52],
+			];
+			const withoutDupe = [
+				[5.9, 52],
+				[6.9, 52],
+				[6.9, 53],
+				[5.9, 52],
+			];
+
+			test('gives the same answer as the equivalent ring without the duplicate', () => {
+				assert.equal(
+					isPointInRing([25.9, 72], withDupe),
+					isPointInRing([25.9, 72], withoutDupe),
+				);
+				assert.equal(
+					isPointInRing([5.905, 52.005], withDupe),
+					isPointInRing([5.905, 52.005], withoutDupe),
+				);
+				assert.ok(!isPointInRing([25.9, 72], withDupe));
+				assert.ok(isPointInRing([5.905, 52.005], withDupe));
+			});
+		});
 	});
 });
