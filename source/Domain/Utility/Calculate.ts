@@ -221,6 +221,21 @@ export function getDistanceOfLineToLine(
 			);
 }
 
+// How far from exactly parallel (sin of the angle between direction
+// vectors, scale-independent) still counts as "parallel" for the
+// collinear-overlap fallback below. Not a fixed distance — an absolute
+// threshold on the raw cross product would be wrong at both ends (too
+// loose for short segments, too tight for long ones).
+const PARALLEL_EPSILON = 1e-9;
+// Float-noise tolerance, in meters, for "this point is exactly on that
+// line" once the lines are already known to be collinear. Looser than
+// isPointOnLine's own default (1e-14 m, meant for near bit-exact
+// matches like a ring's own repeated vertex) because two independently-
+// computed collinear points land ~1e-9-1e-10 m apart in practice, not
+// 1e-14 — still five to six orders of magnitude tighter than any real
+// GPS/survey precision, so it can't swallow genuinely distinct points.
+const COLLINEAR_POINT_THRESHOLD = 1e-6;
+
 export function isLinesCrossing(
 	a: [Point['coordinates'], Point['coordinates']],
 	b: [Point['coordinates'], Point['coordinates']],
@@ -230,10 +245,34 @@ export function isLinesCrossing(
 	const [[a1x, a1y], [a2x, a2y]] = ua;
 	const [[b1x, b1y], [b2x, b2y]] = ub;
 	const [s1x, s1y, s2x, s2y] = [a2x - a1x, a2y - a1y, b2x - b1x, b2y - b1y];
-	const s =
-		(-s1y * (a1x - b1x) + s1x * (a1y - b1y)) / (-s2x * s1y + s1x * s2y);
-	const t =
-		(s2x * (a1y - b1y) - s2y * (a1x - b1x)) / (-s2x * s1y + s1x * s2y);
+	const denominator = -s2x * s1y + s1x * s2y;
+	const length1 = Math.sqrt(s1x * s1x + s1y * s1y);
+	const length2 = Math.sqrt(s2x * s2x + s2y * s2y);
+
+	// Collinear/parallel (or one line is a degenerate point): the general
+	// crossing formula below assumes exactly one intersection point, which
+	// isn't true when the lines run along each other — they can share a
+	// whole overlapping stretch, or none at all. Fall back to checking
+	// whether any endpoint of one line lies on the other: for two
+	// collinear segments, any overlap is always bounded by one of the
+	// four endpoints (interval math — the overlap of [a1,a2] and [b1,b2]
+	// on a shared line starts/ends at max(a1,b1)/min(a2,b2), each always
+	// one of the four original values).
+	if (
+		length1 === 0 ||
+		length2 === 0 ||
+		Math.abs(denominator / (length1 * length2)) < PARALLEL_EPSILON
+	) {
+		return (
+			isPointOnLine(a[0], b, COLLINEAR_POINT_THRESHOLD) ||
+			isPointOnLine(a[1], b, COLLINEAR_POINT_THRESHOLD) ||
+			isPointOnLine(b[0], a, COLLINEAR_POINT_THRESHOLD) ||
+			isPointOnLine(b[1], a, COLLINEAR_POINT_THRESHOLD)
+		);
+	}
+
+	const s = (-s1y * (a1x - b1x) + s1x * (a1y - b1y)) / denominator;
+	const t = (s2x * (a1y - b1y) - s2y * (a1x - b1x)) / denominator;
 
 	return s >= 0 && s <= 1 && t >= 0 && t <= 1;
 }
