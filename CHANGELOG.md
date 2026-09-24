@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0-beta.0](https://github.com/konfirm/geojson/compare/v2.1.0...v2.2.0-beta.0) (2026-09-24)
+
+### Features
+
+* add 'winding' boundary convention, the top-left fill rule for lon/lat ([a603b5b](https://github.com/konfirm/geojson/commit/a603b5bcfe27131a4ffa76384ffe4ee644fd50cf)), closes [#25](https://github.com/konfirm/geojson/issues/25)
+* export ringArea and exceedsHemisphere ([58c0502](https://github.com/konfirm/geojson/commit/58c05024f7f5150c731f588e04e0088fcc65cd14)), closes [#23](https://github.com/konfirm/geojson/issues/23)
+
+### Bug Fixes
+
+* boundary points always counted as inside, ignoring winding/area ([d929a8c](https://github.com/konfirm/geojson/commit/d929a8ca9400c65ed25eee937a9dbaad63d438c7)), references [#25](https://github.com/konfirm/geojson/issues/25)
+* detect ring winding with spherical math, not a flat shoelace sum ([9983e66](https://github.com/konfirm/geojson/commit/9983e66d3f869b9496485f70dab73974000406ac))
+* keep point-to-line distance in one coordinate frame across the antimeridian ([276eb48](https://github.com/konfirm/geojson/commit/276eb4889fa778c0d4be79b500562a8bff0437ea)), closes [#24](https://github.com/konfirm/geojson/issues/24)
+* pick the correct smaller region for band-shaped ring polygons ([ae41e8d](https://github.com/konfirm/geojson/commit/ae41e8de97ec2e25ffb413cc085b36e1ff97e231)), closes [#22](https://github.com/konfirm/geojson/issues/22)
+
 ## [2.1.0](https://github.com/konfirm/geojson/compare/v2.1.0-beta.1...v2.1.0) (2026-09-12)
 
 ## [2.1.0-beta.1](https://github.com/konfirm/geojson/compare/v2.1.0-beta.0...v2.1.0-beta.1) (2026-09-12)
