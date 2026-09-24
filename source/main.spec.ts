@@ -13,6 +13,8 @@ const expectedExports = [
 	'karney',
 	'vincenty',
 	'intersect',
+	'ringArea',
+	'exceedsHemisphere',
 	'isFeature',
 	'isFeatureCollection',
 	'isGeoJSON',

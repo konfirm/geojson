@@ -1,13 +1,19 @@
+import { isClosedRing } from '../GeoJSON/Concept/LinearRing';
 import type { Position } from '../GeoJSON/Concept/Position';
 import { SelfIntersectingRingError } from '../GeoJSON/Error/SelfIntersectingRingError';
 
 type SpherePosition = [number, number, number];
 
-// Fixed, arbitrary, non-grid-aligned reference point — the same "point at
-// infinity" trick S2 (and, via a vendored S2 snapshot, MongoDB's 2dsphere
-// index) uses to anchor an otherwise-relative crossing count. Deliberately
-// not a pole or a round number, to avoid coinciding with typical data.
+// Fixed point far from any likely data — the same "point at
+// infinity" trick S2 (as used by MongoDB's 2dsphere index) uses to anchor an
+// otherwise-relative crossing count. Not a pole, not a round number,
+// on purpose.
 const ORIGIN_POSITION: Position = [37.294613, 12.847291];
+// Float noise around an exact hemisphere tie (2*PI) computes a few ULPs
+// off, not exactly on it; this absorbs that without hiding any tie
+// anyone would actually care about
+const HEMISPHERE_TIE_EPSILON = 1e-9;
+const FULL_SPHERE = 4 * Math.PI;
 const D2R = Math.PI / 180;
 
 function toSpherePosition([λ, φ]: Position): SpherePosition {
@@ -40,20 +46,14 @@ function normalize([x, y, z]: SpherePosition): SpherePosition {
 	return [x / length, y / length, z / length];
 }
 
-// Orientation predicate: sign of the scalar triple product. This is the
-// spherical analogue of the 2D "which side of line AB is point C on"
-// cross-product test.
+// Sign of the scalar triple product
+// The spherical version of the 2D "which side of line AB is C on" test.
 function sign(a: SpherePosition, b: SpherePosition, c: SpherePosition): number {
 	return Math.sign(dot(a, cross(b, c)));
 }
 
-// The exact edge-crossing predicate from S2's own source (confirmed against
-// s2edge_crosser.h, and against MongoDB's vendored s2edgeutil.h under the
-// name RobustCrossing — same test, different filename): edges (A,B) and
-// (C,D) cross iff all four triangle orientations agree and are nonzero. An
-// earlier, simpler two-pair "each straddles the other's great circle" test
-// looks plausible but is insufficient — it produces false positives for
-// long test arcs.
+// Edge-crossing test, lifted straight from S2: edges [A,B] and [C,D] cross if
+// all four triangle orientations agree and none is zero..
 function arcsCross(
 	a: SpherePosition,
 	b: SpherePosition,
@@ -89,14 +89,9 @@ function crossingCount(
 	);
 }
 
-// A ring is self-intersecting if any two non-adjacent edges cross — reuses
-// arcsCross rather than inventing new geometry for this. Adjacent edges
-// (including the wrap-around pair at the closing vertex) share an endpoint
-// by construction and are excluded, not checked. Returns the crossing pair
-// of edge indices (into the same array `ring` this was called with), or
-// null when the ring is simple — the indices, not just a boolean, are what
-// let the caller construct a SelfIntersectingRingError naming the actual
-// crossing edges rather than just reporting that *something* crossed.
+// Self-intersection: any two non-adjacent edges cross.
+// Returns the indices of the crossing edges so the caller can report
+// *which* edges crossed, not just that something did.
 function findSelfIntersection(
 	ring: Array<SpherePosition>,
 ): [number, number] | null {
@@ -124,28 +119,12 @@ function findSelfIntersection(
 	return null;
 }
 
-// A point believed to be in the ring's smaller region: the vertex centroid
-// (unit-vector average, normalized). Reasonably-shaped rings have their
-// centroid inside their own smaller region; this is a heuristic, not a
-// proof — a pathologically non-star-shaped ring could in principle defeat
-// it.
-//
-// Degenerate case: a ring whose vertices all share one latitude (e.g. a
-// circle of latitude) has vertices that are coplanar with the sphere's
-// center, so *any* subset average cancels toward zero regardless of which
-// vertices are chosen. Falls back to nudging the first edge's midpoint
-// along that edge's own normal, which — verified against both winding
-// directions — lands correctly on that edge's near side.
-function centroid(ring: Array<SpherePosition>): SpherePosition {
-	const sum = ring.reduce(
-		([sx, sy, sz], [x, y, z]) => [sx + x, sy + y, sz + z],
-		[0, 0, 0] as SpherePosition,
-	);
-
-	if (Math.sqrt(dot(sum, sum)) >= 1e-6) {
-		return normalize(sum);
-	}
-
+// A point just off the first edge's midpoint, on the ring's own
+// traversal side. Unlike averaging the vertices, this doesn't care what
+// the rest of the ring looks like
+// Known caveat: if some other edge runs within `epsilon` of this point,
+// we lose
+function edgeReference(ring: Array<SpherePosition>): SpherePosition {
 	const [a, b] = ring;
 	const midpoint = normalize([a[0] + b[0], a[1] + b[1], a[2] + b[2]]);
 	const edgeNormal = normalize(cross(a, b));
@@ -158,50 +137,113 @@ function centroid(ring: Array<SpherePosition>): SpherePosition {
 	]);
 }
 
-// findSelfIntersection is O(n²) in the ring's edge count and would
-// otherwise re-run from scratch on every call against the same ring — real
-// polygons (e.g. a detailed country boundary) can have hundreds of
-// vertices, and a caller checking many points against one ring pays that
-// cost every time. Cached by value (the ring's own coordinates, not the
-// array's identity): stringifying is itself a cheap O(n) copy, so a caller
-// mutating their ring array in place naturally produces a different key
-// next time (no stale hit), while two distinct arrays holding the same
-// coordinates collapse to the same entry (better reuse than reference
-// identity would give). Caches the crossing indices, not an Error instance
-// — constructing a fresh SelfIntersectingRingError on every call, cache hit
-// or not, avoids a single shared, mutable error object being handed out to
-// unrelated callers who each expect to enrich their own copy. Traded off
-// deliberately: entries are never evicted, so a process checking an
-// unbounded number of distinct rings over its lifetime would grow this
-// without bound — acceptable for the expected usage (a bounded set of
-// rings queried repeatedly), revisit if that assumption stops holding.
+// How much, and which way, the path bends at `v`: the angle between the
+// two adjacent edges' plane normals, signed relative to `v` so left and
+// right turns differ.
+function turningAngle(
+	previous: SpherePosition,
+	v: SpherePosition,
+	next: SpherePosition,
+): number {
+	const incoming = cross(previous, v);
+	const outgoing = cross(v, next);
+
+	return Math.atan2(
+		dot(v, cross(incoming, outgoing)),
+		dot(incoming, outgoing),
+	);
+}
+
+// Area of the ring's own traversal-implied ("left of travel") side, in
+// steradians, always in [0, 4*PI) — never negative. A small counter-
+// clockwise ring's own (small, obviously-enclosed) interior is on its
+// left, so this comes out small; the same shape wound clockwise has its
+// *complement* on the left instead, so this comes out close to 4*PI, not
+// negative.
+function signedRingArea(ring: Array<SpherePosition>): number {
+	const { length } = ring;
+	const totalTurning = ring.reduce(
+		(sum, v, i) =>
+			sum +
+			turningAngle(
+				ring[(i - 1 + length) % length],
+				v,
+				ring[(i + 1) % length],
+			),
+		0,
+	);
+
+	return (
+		(((2 * Math.PI - totalTurning) % FULL_SPHERE) + FULL_SPHERE) %
+		FULL_SPHERE
+	);
+}
+
+// findSelfIntersection is O(n²) and re-running it per point against the
+// same ring gets old fast, real polygons run to hundreds of vertices.
+// Keyed by the ring's coordinates, not array identity: mutating your ring
+// in place gives a new key (no stale hits), identical rings in different
+// arrays share an entry.
 const selfIntersectionCache = new Map<string, [number, number] | null>();
 
-// Spherical point-in-ring containment via crossing-count parity, replacing
-// flat-plane ray-casting (which has no way to resolve a ring large/
-// ambiguous enough that "which side is inside" isn't decided by the ring's
-// shape alone — see issue #18). Matches this library's existing behaviour
-// for ordinary rings and MongoDB's own default (non-strict-winding)
-// convention for large/ambiguous ones.
-//
-// A `'winding'` mode (always trust the ring's own traversal direction,
-// matching MongoDB's strictwinding CRS opt-in) is deliberately not
-// implemented here yet — comparing against a fixed reference point only
-// gives you *a* consistent answer, not necessarily the winding-implied one,
-// and that hasn't been designed or validated. Don't add it speculatively;
-// see plan/spherical-polygon-containment.md.
-export function isPositionInSphericalRing(
-	position: Position,
-	ring: Array<Position>,
-): boolean {
-	const vertices = ring.slice(0, -1).map(toSpherePosition);
-	const key = JSON.stringify(ring);
+function getSelfIntersection(
+	key: string,
+	vertices: Array<SpherePosition>,
+): [number, number] | null {
 	let crossing = selfIntersectionCache.get(key);
 
 	if (crossing === undefined) {
 		crossing = findSelfIntersection(vertices);
 		selfIntersectionCache.set(key, crossing);
 	}
+
+	return crossing;
+}
+
+// Area of a ring's own traversal-implied side, at the Position level.
+// Returns null for fewer than 3 distinct vertices: a point or
+// a line segment doesn't enclose anything
+export function orientedRingArea(ring: Array<Position>): number | null {
+	const open = isClosedRing(ring) ? ring.slice(0, -1) : ring;
+
+	if (open.length < 3) return null;
+
+	const vertices = open.map(toSpherePosition);
+
+	// A self-intersecting ("bowtie") ring has no single left/right side —
+	// Gauss-Bonnet assumes a simple closed curve and produces some
+	// specific-looking but meaningless number for one that crosses itself,
+	// not a natural tie the way a flat shoelace sum's own cancellation
+	// happens to land on exactly 0 for a *balanced* self-crossing shape.
+	return getSelfIntersection(JSON.stringify(ring), vertices)
+		? null
+		: signedRingArea(vertices);
+}
+
+// Unsigned ring area in steradians, 0 to 4*PI (whole sphere). This is the
+// ring's literal, as-wound area — unlike isPositionInSphericalRing/intersect(),
+// it does not correct for winding, so reversing a ring's vertex order can
+// change the result. Fewer than 3 distinct vertices: reported as 0 which
+// differs from orientedRingArea.
+export function ringArea(ring: Array<Position>): number {
+	const area = orientedRingArea(ring);
+
+	return area === null ? 0 : Math.abs(area);
+}
+
+// Whether a ring's own as-wound area covers more than half the sphere. A thin
+// wrapper over ringArea()
+export function exceedsHemisphere(ring: Array<Position>): boolean {
+	return ringArea(ring) > 2 * Math.PI + HEMISPHERE_TIE_EPSILON;
+}
+
+// Point-in-ring via crossing-count parity, done on the sphere
+export function isPositionInSphericalRing(
+	position: Position,
+	ring: Array<Position>,
+): boolean {
+	const vertices = ring.slice(0, -1).map(toSpherePosition);
+	const crossing = getSelfIntersection(JSON.stringify(ring), vertices);
 
 	if (crossing) {
 		const [i, j] = crossing;
@@ -214,9 +256,13 @@ export function isPositionInSphericalRing(
 	}
 
 	const p = toSpherePosition(position);
-
-	return (
+	const reference = edgeReference(vertices);
+	const sameSideAsReference =
 		crossingCount(p, vertices) % 2 ===
-		crossingCount(centroid(vertices), vertices) % 2
-	);
+		crossingCount(reference, vertices) % 2;
+
+	// edgeReference sits on the ring's traversal side. If that side is the
+	// bigger one (over a hemisphere), the smaller-region rule makes the
+	// *other* side inside: flip. Ties drop through and winding decides.
+	return exceedsHemisphere(ring) ? !sameSideAsReference : sameSideAsReference;
 }

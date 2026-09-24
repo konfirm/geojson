@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { LinearRing } from '../GeoJSON/Concept/LinearRing';
 import type { Position } from '../GeoJSON/Concept/Position';
-import { isPositionInSphericalRing } from './Spherical';
+import {
+	exceedsHemisphere,
+	isPositionInSphericalRing,
+	orientedRingArea,
+	ringArea,
+} from './Spherical';
 
 // Regression cases for https://github.com/konfirm/geojson/issues/18
 //
@@ -20,6 +25,39 @@ function parallelRing(lat: number, step = 10): LinearRing {
 	for (let lon = -180; lon < 180; lon += step) ring.push([lon, lat]);
 
 	return [...ring, ring[0]];
+}
+
+// A run of same-latitude points from lonFrom to lonTo (open, no closing
+// vertex) — dense enough that no single edge snaps to the short geodesic
+// shortcut across the antimeridian. Used to build rings closed by
+// vertical (meridian) edges rather than a full 360-degree circle.
+function parallel(
+	lat: number,
+	lonFrom: number,
+	lonTo: number,
+	step: number,
+): Array<Position> {
+	const points: Array<Position> = [];
+	const dir = lonTo >= lonFrom ? step : -step;
+	for (let lon = lonFrom; dir > 0 ? lon <= lonTo : lon >= lonTo; lon += dir)
+		points.push([lon, lat]);
+	return points;
+}
+
+// A latitude band from -60 to 60, spanning -170 to 170 longitude (not a
+// full 360-degree circle — closed by two vertical meridian edges at lon
+// +-170 instead of wrapping). Covers ~82% of the sphere as literally
+// wound; its complement (both polar caps beyond +-60 plus the thin
+// longitude sliver near the antimeridian) is the smaller region. From
+// issue #22.
+function bandRing(): LinearRing {
+	const ring: LinearRing = [
+		...parallel(-60, -170, 170, 10),
+		...parallel(60, 170, -170, 10),
+	] as LinearRing;
+	ring.push(ring[0]);
+
+	return ring;
 }
 
 // Pole-to-pole: up meridian `lon` from -90 to 90, down the antimeridian
@@ -209,6 +247,207 @@ describe('Domain/Utility/Spherical', () => {
 			test('point c is inside', () => {
 				assert.equal(isPositionInSphericalRing([0, 65], ring), true);
 			});
+		});
+
+		describe('band ring closed by vertical edges (issue #22)', () => {
+			// A latitude band from -60 to 60, spanning -170 to 170 longitude
+			// (not a full 360-degree circle — closed by two vertical meridian
+			// edges at lon +-170 instead of wrapping). The band itself covers
+			// ~82% of the sphere; the smaller region is its complement (both
+			// polar caps beyond +-60 plus the thin longitude sliver between
+			// them near the antimeridian).
+			//
+			// A prior vertex-centroid heuristic for "which side is smaller"
+			// picked the band (the *larger* region) here, because the
+			// centroid of this ring's own vertices sits inside the band
+			// regardless of which region is actually smaller by area — wrong
+			// regardless of winding, not a winding bug. Expected values are
+			// real MongoDB 8.3.9 $geoWithin results, default mode (no
+			// crs:strictwinding), via mongo-catalog's geo-antipodal ground
+			// truth: both windings agree, matching the smaller-area
+			// convention exactly once the region is identified correctly.
+			const forwardRing = bandRing();
+			const reversedRing = [...forwardRing].reverse();
+
+			const deepInBand: Position = [0, 0];
+			const deepInPolarCap: Position = [45, 75];
+
+			test('forward winding: point deep in the band is outside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInBand, forwardRing),
+					false,
+				);
+			});
+			test('forward winding: point deep in the polar cap is inside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInPolarCap, forwardRing),
+					true,
+				);
+			});
+			test('reversed winding: point deep in the band is outside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInBand, reversedRing),
+					false,
+				);
+			});
+			test('reversed winding: point deep in the polar cap is inside', () => {
+				assert.equal(
+					isPositionInSphericalRing(deepInPolarCap, reversedRing),
+					true,
+				);
+			});
+		});
+	});
+
+	describe('ringArea', () => {
+		test('a full hemisphere is 2*PI steradians', () => {
+			const equator: LinearRing = parallelRing(0);
+
+			assert.ok(Math.abs(ringArea(equator) - 2 * Math.PI) < 1e-9);
+		});
+
+		test('a small triangle is a small fraction of 4*PI', () => {
+			const triangle: LinearRing = [
+				[0, 0],
+				[10, 0],
+				[5, 10],
+				[0, 0],
+			];
+
+			const area = ringArea(triangle);
+
+			assert.ok(area > 0 && area < 0.1);
+		});
+
+		test('the same small triangle wound the other way is close to the whole sphere, not the same small value', () => {
+			const triangle: LinearRing = [
+				[0, 0],
+				[10, 0],
+				[5, 10],
+				[0, 0],
+			];
+
+			assert.ok(ringArea([...triangle].reverse()) > 4 * Math.PI - 0.1);
+		});
+
+		test('a spherical cap matches the closed-form cap-area formula', () => {
+			const ring = parallelRing(60, 1);
+			const expected = 2 * Math.PI * (1 - Math.sin((60 * Math.PI) / 180));
+
+			assert.ok(Math.abs(ringArea(ring) - expected) < 1e-4);
+		});
+
+		test("reversing a ring gives the complementary region's area", () => {
+			const ring = parallelRing(1);
+
+			assert.ok(
+				Math.abs(
+					ringArea(ring) +
+						ringArea([...ring].reverse()) -
+						4 * Math.PI,
+				) < 1e-9,
+			);
+		});
+
+		test('if no ring was given, it should return 0', () => {
+			const inputA = [
+				[0, 0],
+				[10, 0],
+			];
+			const inputB = [[0, 0]];
+
+			assert.equal(ringArea(inputA as LinearRing), 0);
+			assert.equal(ringArea(inputB as LinearRing), 0);
+		});
+	});
+
+	describe('orientedRingArea', () => {
+		// Never negative — see Spherical.ts for why the sphere doesn't have a
+		// classic "negative for clockwise" signed area. CW vs CCW is which
+		// side of 2*PI the value falls on, exercised via Winding.spec.ts,
+		// which calls this indirectly through isClockwiseWinding /
+		// isCounterClockwiseWinding.
+
+		test('fewer than 3 distinct vertices has no orientation', () => {
+			assert.equal(orientedRingArea([]), null);
+			assert.equal(orientedRingArea([[0, 0]]), null);
+			assert.equal(
+				orientedRingArea([
+					[0, 0],
+					[1, 0],
+				]),
+				null,
+			);
+			assert.equal(
+				orientedRingArea([
+					[0, 0],
+					[1, 0],
+					[0, 0],
+				]),
+				null,
+			);
+		});
+
+		test('a self-intersecting ("bowtie") ring has no orientation', () => {
+			const bowtie: LinearRing = [
+				[0, 0],
+				[1, 0],
+				[0, 1],
+				[1, 1],
+				[0, 0],
+			];
+
+			assert.equal(orientedRingArea(bowtie), null);
+		});
+
+		test('an ordinary simple ring has a real, non-null orientation', () => {
+			const triangle: LinearRing = [
+				[0, 0],
+				[10, 0],
+				[5, 10],
+				[0, 0],
+			];
+
+			assert.notEqual(orientedRingArea(triangle), null);
+		});
+
+		test('if no ring was given, it should return null', () => {
+			const inputA = [
+				[0, 0],
+				[10, 0],
+			];
+			const inputB = [[0, 0]];
+
+			assert.equal(orientedRingArea(inputA as LinearRing), null);
+			assert.equal(orientedRingArea(inputB as LinearRing), null);
+		});
+
+	});
+
+	describe('exceedsHemisphere', () => {
+		test('an exact hemisphere tie does not exceed it', () => {
+			assert.equal(exceedsHemisphere(parallelRing(0)), false);
+		});
+
+		test('a ring literally enclosing the larger region exceeds it', () => {
+			assert.equal(exceedsHemisphere(bandRing()), true);
+		});
+
+		test('a small triangle does not exceed it', () => {
+			const triangle: LinearRing = [
+				[0, 0],
+				[10, 0],
+				[5, 10],
+				[0, 0],
+			];
+
+			assert.equal(exceedsHemisphere(triangle), false);
+		});
+
+		test('agrees with comparing ringArea() to 2*PI directly', () => {
+			const ring = parallelRing(1);
+
+			assert.equal(exceedsHemisphere(ring), ringArea(ring) > 2 * Math.PI);
 		});
 	});
 });

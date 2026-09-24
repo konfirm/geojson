@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Feature, FeatureCollection, GeometryCollection, LineString, MultiLineString, MultiPoint, Point } from '../source/main';
-import { distance, intersect, SimpleGeometryIterator } from '../source/main';
+import { distance, exceedsHemisphere, intersect, ringArea, SimpleGeometryIterator } from '../source/main';
 
 describe('README - intersect', () => {
 	test('point intersects polygon feature', () => {
@@ -13,6 +13,22 @@ describe('README - intersect', () => {
 		};
 		assert.ok(intersect(point, feature));
 		assert.ok(intersect(feature, point));
+	});
+});
+
+describe('README - ringArea / exceedsHemisphere', () => {
+	test('small (counter-clockwise) ring is a small fraction of the sphere and does not exceed a hemisphere', () => {
+		const ring = [[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]];
+
+		assert.ok(ringArea(ring) > 0 && ringArea(ring) < 0.01);
+		assert.strictEqual(exceedsHemisphere(ring), false);
+	});
+
+	test('the same ring wound clockwise reports the complementary (near-whole-sphere) area', () => {
+		const ring = [[0, 0], [0, 2], [2, 2], [2, 0], [0, 0]];
+
+		assert.ok(ringArea(ring) > 4 * Math.PI - 0.01);
+		assert.strictEqual(exceedsHemisphere(ring), true);
 	});
 });
 

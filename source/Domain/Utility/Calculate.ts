@@ -193,11 +193,13 @@ export function getDistanceOfPointToLine(
 	line: [Point['coordinates'], Point['coordinates']],
 	calculation: PointToPointCalculation,
 ): number {
-	return getDistanceOfPointToPoint(
-		point,
-		getClosestPointOnLineByPoint(point, line),
-		calculation,
-	);
+	const closest = getClosestPointOnLineByPoint(point, line);
+	const aligned =
+		Math.abs(point[0] - closest[0]) > 180
+			? alignPosition(point, closest[0])
+			: point;
+
+	return getDistanceOfPointToPoint(aligned, closest, calculation);
 }
 
 export function getDistanceOfLineToLine(
@@ -238,12 +240,21 @@ export function isPointOnLine(
 	return getDistanceOfPointToLine(point, line, 'cartesian') < threshold;
 }
 
+export type BoundaryDecision = (
+	point: Point['coordinates'],
+	ring: Array<Point['coordinates']>,
+	index: number,
+) => boolean;
+
 export function isPointInRing(
 	p: Point['coordinates'],
 	ring: Array<Point['coordinates']>,
+	boundary: BoundaryDecision = () => true,
 ): boolean {
-	return (
-		isPositionInSphericalRing(p, ring) ||
-		ring.slice(1).some((a, index) => isPointOnLine(p, [ring[index], a]))
-	);
+	const inside = isPositionInSphericalRing(p, ring);
+	const index = ring
+		.slice(1)
+		.findIndex((a, i) => isPointOnLine(p, [ring[i], a]));
+
+	return index === -1 ? inside : boundary(p, ring, index);
 }

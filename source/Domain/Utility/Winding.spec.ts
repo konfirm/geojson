@@ -78,6 +78,20 @@ describe('Domain/Utility/Winding', () => {
 				);
 			});
 		});
+
+		test('returns false for invalid inputs', () => {
+			each`
+				position
+				---
+				${[0, 0, 1, 0, 1, 1]}
+				${'not-a-ring'}
+			`(({ position }: Improbability) => {
+				assert.ok(
+					!isClockwiseWinding(position),
+					`not isClockwiseWinding ${JSON.stringify(position)}`,
+				);
+			});
+		});
 	});
 
 	describe('isCounterClockwiseWinding', () => {
@@ -110,6 +124,20 @@ describe('Domain/Utility/Winding', () => {
 				${[[0, 0], [0, 1], [1, 1], [1, 0]]}
 				${[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]}
 				${RFC7946_HOLE}
+			`(({ position }: Improbability) => {
+				assert.ok(
+					!isCounterClockwiseWinding(position),
+					`not isCounterClockwiseWinding ${JSON.stringify(position)}`,
+				);
+			});
+		});
+
+		test('returns false for invalid inputs', () => {
+			each`
+				position
+				---
+				${[0, 0, 1, 0, 1, 1]}
+				${'not-a-ring'}
 			`(({ position }: Improbability) => {
 				assert.ok(
 					!isCounterClockwiseWinding(position),

@@ -393,6 +393,20 @@ describe('Domain/Utility/Calculate', () => {
 				);
 			});
 		});
+
+		test('agrees on a point exactly on an antimeridian-wrapping edge regardless of endpoint order', () => {
+			const point: [number, number] = [180, 0];
+			const edge: [[number, number], [number, number]] = [
+				[170, 0],
+				[-180, 0],
+			];
+
+			assert.ok(isPointOnLine(point, edge), 'forward edge order');
+			assert.ok(
+				isPointOnLine(point, [edge[1], edge[0]]),
+				'reversed edge order',
+			);
+		});
 	});
 
 	describe('isPointInRing', () => {
@@ -470,6 +484,60 @@ describe('Domain/Utility/Calculate', () => {
 						`${explain(point)} is not inside ${explain(ring)}`,
 					);
 				});
+			});
+		});
+
+		describe('boundary decision', () => {
+			const box = [
+				[0, 0],
+				[0, 2],
+				[2, 2],
+				[2, 0],
+				[0, 0],
+			];
+
+			test('defaults to including boundary points, unchanged', () => {
+				assert.ok(isPointInRing([0, 0], box));
+			});
+
+			test('a custom decision can exclude boundary points', () => {
+				assert.ok(!isPointInRing([0, 0], box, () => false));
+				assert.ok(!isPointInRing([1, 0], box, () => false));
+			});
+
+			test('interior and exterior points are unaffected by the decision', () => {
+				assert.ok(isPointInRing([1, 1], box, () => false));
+				assert.ok(!isPointInRing([3, 3], box, () => true));
+			});
+
+			test('the decision receives the point, ring, and matched edge index', () => {
+				let received: unknown;
+
+				isPointInRing([1, 0], box, (point, ring, index) => {
+					received = { point, ring, index };
+					return true;
+				});
+
+				assert.deepStrictEqual(received, {
+					point: [1, 0],
+					ring: box,
+					index: 3, // box[3] -> box[4] is [2, 0] -> [0, 0]
+				});
+			});
+
+			test('self-intersecting rings still throw, regardless of where the point falls', () => {
+				const bowtie = [
+					[0, 0],
+					[1, 0],
+					[0, 1],
+					[1, 1],
+					[0, 0],
+				];
+
+				assert.throws(
+					() => isPointInRing([0.5, 0], bowtie, () => true),
+					/Ring is self-intersecting/,
+				);
 			});
 		});
 	});
