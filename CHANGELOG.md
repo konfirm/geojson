@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.2.0-beta.3](https://github.com/konfirm/geojson/compare/v2.2.0-beta.2...v2.2.0-beta.3) (2026-09-24)
+
+### Bug Fixes
+
+* detect collinear, overlapping LineStrings as intersecting ([92d9b64](https://github.com/konfirm/geojson/commit/92d9b64048fb1cfcc1f1b0c15ca8f42ba12376fe)), closes [#30](https://github.com/konfirm/geojson/issues/30)
+
 ## [2.2.0-beta.2](https://github.com/konfirm/geojson/compare/v2.2.0-beta.1...v2.2.0-beta.2) (2026-09-24)
 
 ### Bug Fixes
