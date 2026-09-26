@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.2.0-beta.4](https://github.com/konfirm/geojson/compare/v2.2.0-beta.3...v2.2.0-beta.4) (2026-09-26)
+
+### Bug Fixes
+
+* don't count a lone boundary touch as a LineString intersecting a Polygon ([fc55691](https://github.com/konfirm/geojson/commit/fc55691324d987ce41db94b18ceedf57c1e936c5)), closes [#31](https://github.com/konfirm/geojson/issues/31), references [#30](https://github.com/konfirm/geojson/issues/30)
+
 ## [2.2.0-beta.3](https://github.com/konfirm/geojson/compare/v2.2.0-beta.2...v2.2.0-beta.3) (2026-09-24)
 
 ### Bug Fixes
