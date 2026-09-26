@@ -8,6 +8,7 @@ import { unwrapPath } from './Antimeridian';
 import {
 	type BoundaryDecision,
 	getDistanceOfPointToPoint,
+	getLineCrossingParameters,
 	isLinesCrossing,
 	isPointInRing,
 	isPointOnLine,
@@ -84,6 +85,25 @@ function resolveBoundary(boundary: BoundaryConvention): BoundaryDecision {
 		: BOUNDARY_CONVENTIONS[boundary];
 }
 
+// Whether `segment` genuinely enters `edge` — not just touches it at one
+// of the segment's own endpoints, which proves nothing about whether the
+// line has any extent on the other side. A collinear pair (parameters
+// null) is a different question — reuses isLinesCrossing's existing
+// overlap detection unchanged, since a shared stretch (or a touch on it)
+// isn't the endpoint-touch case this function exists to exclude.
+function segmentEntersEdge(
+	segment: [Point['coordinates'], Point['coordinates']],
+	edge: [Point['coordinates'], Point['coordinates']],
+): boolean {
+	const parameters = getLineCrossingParameters(segment, edge);
+
+	if (parameters === null) return isLinesCrossing(segment, edge);
+
+	const { s, t } = parameters;
+
+	return s > 0 && s < 1 && t > 0 && t < 1;
+}
+
 const geometries = {
 	PointPoint(a: Point['coordinates'], b: Point['coordinates']): boolean {
 		return (
@@ -125,11 +145,24 @@ const geometries = {
 	PolygonLineString(
 		a: Polygon['coordinates'],
 		b: LineString['coordinates'],
-		boundary: BoundaryDecision,
+		_boundary: BoundaryDecision,
 	): boolean {
-		return (
-			a.some((ring) => this.LineStringLineString(ring, b)) ||
-			b.some((point) => this.PolygonPoint(a, point, boundary))
+		// A lone touch — one of the line's own endpoints landing exactly on
+		// the polygon's boundary, with the rest of the line staying outside
+		// — doesn't count on its own (issue #31); it needs either a genuine
+		// interior point or a genuine crossing/overlap elsewhere. That's a
+		// structural fact about the line having real extent, independent of
+		// which boundary convention was requested, so it's checked with
+		// interior always strict (`() => false`) rather than `boundary`.
+		return segments(b).some(
+			(segment) =>
+				a.some((ring) =>
+					segments(ring).some((edge) =>
+						segmentEntersEdge(segment, edge),
+					),
+				) ||
+				this.PolygonPoint(a, segment[0], () => false) ||
+				this.PolygonPoint(a, segment[1], () => false),
 		);
 	},
 	PolygonPolygon(

@@ -236,10 +236,19 @@ const PARALLEL_EPSILON = 1e-9;
 // GPS/survey precision, so it can't swallow genuinely distinct points.
 const COLLINEAR_POINT_THRESHOLD = 1e-6;
 
-export function isLinesCrossing(
+export type LineCrossingParameters = { s: number; t: number };
+
+// The raw parametric solution for where (infinite extensions of) `a` and
+// `b` cross, in antimeridian-safe coordinates — null when the lines are
+// parallel/collinear (or one is a degenerate point), since that case has
+// no single intersection point at all (a whole shared stretch, or none).
+// Exported so callers that need to distinguish a genuine transversal
+// crossing from a mere touch (s/t exactly 0 or 1) can do so directly,
+// rather than just getting isLinesCrossing's touch-inclusive boolean.
+export function getLineCrossingParameters(
 	a: [Point['coordinates'], Point['coordinates']],
 	b: [Point['coordinates'], Point['coordinates']],
-): boolean {
+): LineCrossingParameters | null {
 	const ua = unwrapPath(a);
 	const ub = alignPath(unwrapPath(b), ua[0][0]);
 	const [[a1x, a1y], [a2x, a2y]] = ua;
@@ -249,20 +258,33 @@ export function isLinesCrossing(
 	const length1 = Math.sqrt(s1x * s1x + s1y * s1y);
 	const length2 = Math.sqrt(s2x * s2x + s2y * s2y);
 
-	// Collinear/parallel (or one line is a degenerate point): the general
-	// crossing formula below assumes exactly one intersection point, which
-	// isn't true when the lines run along each other — they can share a
-	// whole overlapping stretch, or none at all. Fall back to checking
-	// whether any endpoint of one line lies on the other: for two
-	// collinear segments, any overlap is always bounded by one of the
-	// four endpoints (interval math — the overlap of [a1,a2] and [b1,b2]
-	// on a shared line starts/ends at max(a1,b1)/min(a2,b2), each always
-	// one of the four original values).
 	if (
 		length1 === 0 ||
 		length2 === 0 ||
 		Math.abs(denominator / (length1 * length2)) < PARALLEL_EPSILON
 	) {
+		return null;
+	}
+
+	return {
+		s: (-s1y * (a1x - b1x) + s1x * (a1y - b1y)) / denominator,
+		t: (s2x * (a1y - b1y) - s2y * (a1x - b1x)) / denominator,
+	};
+}
+
+export function isLinesCrossing(
+	a: [Point['coordinates'], Point['coordinates']],
+	b: [Point['coordinates'], Point['coordinates']],
+): boolean {
+	const parameters = getLineCrossingParameters(a, b);
+
+	// Collinear/parallel (or one line is a degenerate point): fall back to
+	// checking whether any endpoint of one line lies on the other — for
+	// two collinear segments, any overlap is always bounded by one of the
+	// four endpoints (interval math — the overlap of [a1,a2] and [b1,b2]
+	// on a shared line starts/ends at max(a1,b1)/min(a2,b2), each always
+	// one of the four original values).
+	if (parameters === null) {
 		return (
 			isPointOnLine(a[0], b, COLLINEAR_POINT_THRESHOLD) ||
 			isPointOnLine(a[1], b, COLLINEAR_POINT_THRESHOLD) ||
@@ -271,8 +293,7 @@ export function isLinesCrossing(
 		);
 	}
 
-	const s = (-s1y * (a1x - b1x) + s1x * (a1y - b1y)) / denominator;
-	const t = (s2x * (a1y - b1y) - s2y * (a1x - b1x)) / denominator;
+	const { s, t } = parameters;
 
 	return s >= 0 && s <= 1 && t >= 0 && t <= 1;
 }

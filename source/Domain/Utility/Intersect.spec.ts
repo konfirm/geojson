@@ -452,4 +452,161 @@ describe('intersect', () => {
 			);
 		});
 	});
+
+	describe('LineString touching a Polygon boundary (issue #31)', () => {
+		// lon 4.9-6.9, lat 51-53
+		const polygon: Polygon = {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[4.9, 51],
+					[6.9, 51],
+					[6.9, 53],
+					[4.9, 53],
+					[4.9, 51],
+				],
+			],
+		};
+		const line = (
+			coordinates: [[number, number], [number, number]],
+		): LineString => ({ type: 'LineString', coordinates });
+
+		test('touching a vertex and immediately leaving does not intersect, in both directions', () => {
+			assert.ok(
+				!intersect(
+					line([
+						[6.9, 53],
+						[6.91, 53.01],
+					]),
+					polygon,
+				),
+			);
+			assert.ok(
+				!intersect(
+					line([
+						[6.91, 53.01],
+						[6.9, 53],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('entering through that same vertex intersects, in both directions', () => {
+			assert.ok(
+				intersect(
+					line([
+						[6.91, 53.01],
+						[6.7, 52.8],
+					]),
+					polygon,
+				),
+			);
+			assert.ok(
+				intersect(
+					line([
+						[6.7, 52.8],
+						[6.91, 53.01],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('touching a mid-edge point (not a vertex) and leaving does not intersect', () => {
+			assert.ok(
+				!intersect(
+					line([
+						[4.9, 52],
+						[4.5, 52.5],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('touching a mid-edge point and entering intersects', () => {
+			assert.ok(
+				intersect(
+					line([
+						[4.9, 52],
+						[5.5, 52.2],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('a proper pass-through crossing (neither endpoint touching or interior) intersects', () => {
+			assert.ok(
+				intersect(
+					line([
+						[5.9, 50.9],
+						[5.9, 53.1],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('running along a full edge, vertex to vertex, intersects', () => {
+			assert.ok(
+				intersect(
+					line([
+						[6.9, 51],
+						[6.9, 53],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('starting at a vertex and running partway along an edge intersects', () => {
+			assert.ok(
+				intersect(
+					line([
+						[6.9, 53],
+						[5.9, 53],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('a fully contained line intersects', () => {
+			assert.ok(
+				intersect(
+					line([
+						[5.5, 51.5],
+						[6, 52],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('entirely outside, no touch, does not intersect', () => {
+			assert.ok(
+				!intersect(
+					line([
+						[10, 10],
+						[11, 11],
+					]),
+					polygon,
+				),
+			);
+		});
+
+		test('a multi-segment line dipping into the interior between two outside vertices intersects', () => {
+			const dipping: LineString = {
+				type: 'LineString',
+				coordinates: [
+					[3, 52],
+					[5.9, 52],
+					[8, 52],
+				],
+			};
+			assert.ok(intersect(dipping, polygon));
+		});
+	});
 });
