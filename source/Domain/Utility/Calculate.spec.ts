@@ -9,6 +9,7 @@ import {
 	getDistanceOfLineToLine,
 	getDistanceOfPointToLine,
 	getDistanceOfPointToPoint,
+	getLineCrossingParameters,
 	haversine,
 	isLinesCrossing,
 	isPointInRing,
@@ -317,6 +318,76 @@ describe('Domain/Utility/Calculate', () => {
 				getClosestPointOnLineByPoint([10.9, 57], [point, point]),
 				point,
 			);
+		});
+	});
+
+	describe('getLineCrossingParameters', () => {
+		test('returns null for parallel/collinear lines', () => {
+			assert.equal(
+				getLineCrossingParameters(
+					[
+						[0, 0],
+						[1, 1],
+					],
+					[
+						[0, 1],
+						[1, 2],
+					],
+				),
+				null,
+			);
+		});
+
+		test('returns null for a degenerate (zero-length) line', () => {
+			assert.equal(
+				getLineCrossingParameters(
+					[
+						[1, 1],
+						[1, 1],
+					],
+					[
+						[0, 0],
+						[2, 2],
+					],
+				),
+				null,
+			);
+		});
+
+		test('s and t are strictly between 0 and 1 for a proper crossing', () => {
+			const parameters = getLineCrossingParameters(
+				[
+					[0, 0],
+					[2, 2],
+				],
+				[
+					[0, 1],
+					[2, 1],
+				],
+			);
+
+			assert.ok(parameters !== null);
+			assert.ok(parameters.s > 0 && parameters.s < 1);
+			assert.ok(parameters.t > 0 && parameters.t < 1);
+		});
+
+		test("t is exactly 0 when the intersection sits at the first line's own start point", () => {
+			// The two lines meet exactly at [1,1] -- a's own start point.
+			const parameters = getLineCrossingParameters(
+				[
+					[1, 1],
+					[2, 2],
+				],
+				[
+					[0, 2],
+					[2, 0],
+				],
+			);
+
+			assert.ok(parameters !== null);
+			// === (not assert.equal's Object.is) since the computed value can
+			// legitimately land on -0, which is === 0 but not Object.is(0).
+			assert.ok(parameters.t === 0);
 		});
 	});
 
